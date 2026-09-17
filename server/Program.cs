@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using server.Data;
 using server.Services;
+using server.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,16 +12,10 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 var oidcIssuer = builder.Configuration["Oidc:Issuer"];
 var oidcAudience = builder.Configuration["Oidc:Audience"];
 
-if (string.IsNullOrWhiteSpace(connectionString))
-    throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured");
-if (string.IsNullOrWhiteSpace(oidcIssuer))
-    throw new InvalidOperationException("Oidc:Issuer is not configured");
-if (string.IsNullOrWhiteSpace(oidcAudience))
-    throw new InvalidOperationException("Oidc:Audience is not configured");
-
 // Services
+builder.Services.AddScoped<ISkillService, SkillService>();
 
-builder.Services.AddControllers();
+// OpenAPI
 builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));

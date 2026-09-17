@@ -1,0 +1,16 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": ""
+  },
+  "Oidc": {
+    "Issuer": "https://skillbridge-wbs.eu.auth0.com",
+    "Audience": "https://skillbridge-api"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+}

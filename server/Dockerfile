@@ -5,7 +5,7 @@ COPY server/server.csproj server/
 RUN dotnet restore server/server.csproj
 
 COPY server/ server/
-RUN dotnet publish server/server.csproj -c Release -o /app --no-restore
+RUN dotnet publish server/server.csproj -c Release -o /app
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app

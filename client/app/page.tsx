@@ -1,69 +1,229 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
+
+interface CurrentUser {
+  id: string
+  sub: string
+  email: string | null
+  displayName: string | null
+}
+
+interface Job {
+  id: string
+  title: string
+  company: string
+  requiredSkills: string[]
+  createdAt: string
+}
+
+interface Skill {
+  id: string
+  name: string
+  level: string
+}
+
+const card = 'rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-3'
+const label = 'text-xs uppercase tracking-wide text-zinc-500'
+const button =
+  'inline-flex items-center rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white ' +
+  'hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300'
+const input =
+  'flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900'
+
+export default function Page() {
+  const [user, setUser] = useState<CurrentUser | null>(null)
+  const [skillsAppUrl, setSkillsAppUrl] = useState<string | null>(null)
+  const [jobs, setJobs] = useState<Job[]>([])
+  const [peerSkills, setPeerSkills] = useState<Skill[] | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const [title, setTitle] = useState('')
+  const [company, setCompany] = useState('')
+
+  const loadJobs = useCallback(async () => {
+    const response = await fetch('/api/jobs', { credentials: 'include' })
+    if (response.ok) {
+      const data = (await response.json()) as { jobs: Job[] }
+      setJobs(data.jobs)
+    }
+  }, [])
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const response = await fetch('/api/me', { credentials: 'include' })
+        if (response.ok) {
+          const data = (await response.json()) as {
+            user: CurrentUser
+            skillsAppUrl: string | null
+          }
+          setUser(data.user)
+          setSkillsAppUrl(data.skillsAppUrl)
+          await loadJobs()
+        }
+      } finally {
+        setLoading(false)
+      }
+    }
+    void load()
+  }, [loadJobs])
+
+  const addJob = async (event: FormEvent) => {
+    event.preventDefault()
+    if (busy || title.trim().length === 0 || company.trim().length === 0) return
+
+    setBusy(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/jobs', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title.trim(),
+          company: company.trim(),
+          requiredSkills: [],
+        }),
+      })
+
+      if (!response.ok) {
+        setError(`Could not save the posting (${response.status})`)
+        return
+      }
+
+      setTitle('')
+      setCompany('')
+      await loadJobs()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const loadPeerSkills = async () => {
+    setError(null)
+    const response = await fetch('/api/peer/skills', { credentials: 'include' })
+    if (!response.ok) {
+      setError(`Request failed with ${response.status}`)
+      return
+    }
+    const data = (await response.json()) as { skills: Skill[] }
+    setPeerSkills(data.skills)
+  }
+
+  if (loading) {
+    return (
+      <main className="mx-auto w-full max-w-2xl px-6 py-16">
+        <p className="text-sm text-zinc-500">Loading…</p>
       </main>
-    </div>
-  );
+    )
+  }
+
+  return (
+    <main className="mx-auto w-full max-w-2xl space-y-6 px-6 py-16">
+      <header className="space-y-1">
+        <span className={label}>Next.js · ASP.NET Core · PostgreSQL</span>
+        <h1 className="text-3xl font-semibold tracking-tight">CareerOS</h1>
+        <p className="text-zinc-500">Job posting analysis</p>
+      </header>
+
+      {!user ? (
+        <section className={card}>
+          <p>You are not signed in.</p>
+          <a className={button} href="/auth/login">
+            Sign in
+          </a>
+        </section>
+      ) : (
+        <>
+          <section className={card}>
+            <p className={label}>Signed in as</p>
+            <p className="text-lg font-medium">{user.displayName ?? user.email}</p>
+
+            <p className={label}>Subject id — issued by the identity provider</p>
+            <code className="block break-all text-xs text-zinc-500">{user.sub}</code>
+
+            <p className={label}>Row id — created in our database on first sign-in</p>
+            <code className="block break-all text-xs text-zinc-500">{user.id}</code>
+          </section>
+
+          <section className={card}>
+            <h2 className="text-lg font-medium">Tracked postings</h2>
+            <p className={label}>Stored by the ASP.NET Core API in PostgreSQL</p>
+
+            <form className="flex gap-2" onSubmit={addJob}>
+              <input
+                className={input}
+                placeholder="Job title"
+                maxLength={160}
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+              />
+              <input
+                className={input}
+                placeholder="Company"
+                maxLength={160}
+                value={company}
+                onChange={(event) => setCompany(event.target.value)}
+              />
+              <button className={button} type="submit" disabled={busy}>
+                Add
+              </button>
+            </form>
+
+            {error && <p className="text-sm text-red-600">{error}</p>}
+
+            {jobs.length === 0 ? (
+              <p className="text-sm text-zinc-500">Nothing yet — add your first posting above.</p>
+            ) : (
+              <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                {jobs.map((job) => (
+                  <li key={job.id} className="py-2 text-sm">
+                    {job.title} · <span className="text-zinc-500">{job.company}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className={card}>
+            <h2 className="text-lg font-medium">Skills from SkillForge</h2>
+            <p className={label}>
+              Fetched server to server with an audience-scoped access token
+            </p>
+
+            <button className={button} onClick={loadPeerSkills} type="button">
+              Load my skills
+            </button>
+
+            {peerSkills && (
+              <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                {peerSkills.map((skill) => (
+                  <li key={skill.id} className="flex justify-between py-2 text-sm">
+                    <span>{skill.name}</span>
+                    <span className="text-zinc-500">{skill.level.toLowerCase()}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <a className="text-sm text-zinc-500 underline" href="/auth/logout">
+            Sign out
+          </a>
+        </>
+      )}
+
+      {skillsAppUrl && (
+        <footer className="pt-4">
+          <a className="text-sm underline" href={skillsAppUrl}>
+            Open SkillForge →
+          </a>
+        </footer>
+      )}
+    </main>
+  )
 }

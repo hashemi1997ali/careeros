@@ -1,29 +1,92 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using server.Data;
+using server.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Controllers
-builder.Services.AddControllers();
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var oidcIssuer = builder.Configuration["Oidc:Issuer"];
+var oidcAudience = builder.Configuration["Oidc:Audience"];
 
-// OpenAPI
+if (string.IsNullOrWhiteSpace(connectionString))
+    throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured");
+if (string.IsNullOrWhiteSpace(oidcIssuer))
+    throw new InvalidOperationException("Oidc:Issuer is not configured");
+if (string.IsNullOrWhiteSpace(oidcAudience))
+    throw new InvalidOperationException("Oidc:Audience is not configured");
+
+// Services
+
+builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
-// Database
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-    ));
+builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+
+builder.Services.AddHttpClient();
+
+builder.Services.AddSingleton<OidcDiscovery>();
+
+builder.Services.AddHttpClient<UserProvisioningService>();
+
+// Authentication
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = oidcIssuer.EndsWith('/') ? oidcIssuer : oidcIssuer + "/";
+        options.Audience = oidcAudience;
+
+        options.SaveToken = true;
+
+        options.MapInboundClaims = false;
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+
+            ClockSkew = TimeSpan.FromSeconds(30),
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+// Reverse proxy
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 var app = builder.Build();
 
-// Development OpenAPI
+// Database
+
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    context.Database.Migrate();
+}
+
+// Pipeline — order matters
+
+app.UseForwardedHeaders();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 

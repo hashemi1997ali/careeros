@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using server.Data;
-using server.Models;
+using server.DTOs;
+using server.Services.Interfaces;
 
 namespace server.Controllers;
 
@@ -9,25 +8,25 @@ namespace server.Controllers;
 [Route("api/[controller]")]
 public class SkillsController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly ISkillService _skillService;
 
-    public SkillsController(AppDbContext context)
+    public SkillsController(ISkillService skillService)
     {
-        _context = context;
+        _skillService = skillService;
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Skill>>> GetSkills()
+    public async Task<ActionResult<IEnumerable<SkillResponseDto>>> GetSkills()
     {
-        var skills = await _context.Skills.ToListAsync();
+        var skills = await _skillService.GetAllAsync();
 
         return Ok(skills);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Skill>> GetSkill(int id)
+    public async Task<ActionResult<SkillResponseDto>> GetSkill(int id)
     {
-        var skill = await _context.Skills.FindAsync(id);
+        var skill = await _skillService.GetByIdAsync(id);
 
         if (skill == null)
         {
@@ -38,34 +37,26 @@ public class SkillsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<Skill>> CreateSkill(Skill skill)
+    public async Task<ActionResult<SkillResponseDto>> CreateSkill(CreateSkillDto dto)
     {
-        _context.Skills.Add(skill);
-
-        await _context.SaveChangesAsync();
+        var createdSkill = await _skillService.CreateAsync(dto);
 
         return CreatedAtAction(
             nameof(GetSkill),
-            new { id = skill.Id },
-            skill
+            new { id = createdSkill.Id },
+            createdSkill
         );
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateSkill(int id, Skill updatedSkill)
+    public async Task<IActionResult> UpdateSkill(int id, UpdateSkillDto dto)
     {
-        var skill = await _context.Skills.FindAsync(id);
+        var updated = await _skillService.UpdateAsync(id, dto);
 
-        if (skill == null)
+        if (!updated)
         {
             return NotFound();
         }
-
-        skill.Name = updatedSkill.Name;
-        skill.Category = updatedSkill.Category;
-        skill.Level = updatedSkill.Level;
-
-        await _context.SaveChangesAsync();
 
         return NoContent();
     }
@@ -73,16 +64,12 @@ public class SkillsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteSkill(int id)
     {
-        var skill = await _context.Skills.FindAsync(id);
+        var deleted = await _skillService.DeleteAsync(id);
 
-        if (skill == null)
+        if (!deleted)
         {
             return NotFound();
         }
-
-        _context.Skills.Remove(skill);
-
-        await _context.SaveChangesAsync();
 
         return NoContent();
     }

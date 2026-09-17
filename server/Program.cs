@@ -1,10 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using server.Data;
+using server.Services;
+using server.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Controllers
 builder.Services.AddControllers();
+
+// Services
+builder.Services.AddScoped<ISkillService, SkillService>();
 
 // OpenAPI
 builder.Services.AddOpenApi();

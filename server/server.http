@@ -4,7 +4,12 @@
 @projectId = 1
 @applicationId = 1
 
-GET {{server_HostAddress}}/api/health
+GET {{server_HostAddress}}/health/live
+Accept: application/json
+
+###
+
+GET {{server_HostAddress}}/health/ready
 Accept: application/json
 
 ###

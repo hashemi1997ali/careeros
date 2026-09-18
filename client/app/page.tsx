@@ -9,12 +9,11 @@ interface CurrentUser {
   displayName: string | null
 }
 
-interface Job {
-  id: string
-  title: string
+interface JobApplication {
+  id: number
+  position: string
   company: string
-  requiredSkills: string[]
-  createdAt: string
+  status: string
 }
 
 interface Skill {
@@ -34,20 +33,19 @@ const input =
 export default function Page() {
   const [user, setUser] = useState<CurrentUser | null>(null)
   const [skillsAppUrl, setSkillsAppUrl] = useState<string | null>(null)
-  const [jobs, setJobs] = useState<Job[]>([])
+  const [applications, setApplications] = useState<JobApplication[]>([])
   const [peerSkills, setPeerSkills] = useState<Skill[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const [title, setTitle] = useState('')
+  const [position, setPosition] = useState('')
   const [company, setCompany] = useState('')
 
-  const loadJobs = useCallback(async () => {
-    const response = await fetch('/api/jobs', { credentials: 'include' })
+  const loadApplications = useCallback(async () => {
+    const response = await fetch('/api/job-applications', { credentials: 'include' })
     if (response.ok) {
-      const data = (await response.json()) as { jobs: Job[] }
-      setJobs(data.jobs)
+      setApplications((await response.json()) as JobApplication[])
     }
   }, [])
 
@@ -62,42 +60,43 @@ export default function Page() {
           }
           setUser(data.user)
           setSkillsAppUrl(data.skillsAppUrl)
-          await loadJobs()
+          await loadApplications()
         }
       } finally {
         setLoading(false)
       }
     }
     void load()
-  }, [loadJobs])
+  }, [loadApplications])
 
-  const addJob = async (event: FormEvent) => {
+  const addApplication = async (event: FormEvent) => {
     event.preventDefault()
-    if (busy || title.trim().length === 0 || company.trim().length === 0) return
+    if (busy || position.trim().length === 0 || company.trim().length === 0) return
 
     setBusy(true)
     setError(null)
 
     try {
-      const response = await fetch('/api/jobs', {
+      const response = await fetch('/api/job-applications', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: title.trim(),
+          position: position.trim(),
           company: company.trim(),
-          requiredSkills: [],
+          status: 'Saved',
+          requirements: [],
         }),
       })
 
       if (!response.ok) {
-        setError(`Could not save the posting (${response.status})`)
+        setError(`Could not save the application (${response.status})`)
         return
       }
 
-      setTitle('')
+      setPosition('')
       setCompany('')
-      await loadJobs()
+      await loadApplications()
     } finally {
       setBusy(false)
     }
@@ -127,7 +126,7 @@ export default function Page() {
       <header className="space-y-1">
         <span className={label}>Next.js · ASP.NET Core · PostgreSQL</span>
         <h1 className="text-3xl font-semibold tracking-tight">CareerOS</h1>
-        <p className="text-zinc-500">Job posting analysis</p>
+        <p className="text-zinc-500">Career development and application tracking</p>
       </header>
 
       {!user ? (
@@ -143,24 +142,24 @@ export default function Page() {
             <p className={label}>Signed in as</p>
             <p className="text-lg font-medium">{user.displayName ?? user.email}</p>
 
-            <p className={label}>Subject id — issued by the identity provider</p>
+            <p className={label}>Subject ID — issued by the identity provider</p>
             <code className="block break-all text-xs text-zinc-500">{user.sub}</code>
 
-            <p className={label}>Row id — created in our database on first sign-in</p>
+            <p className={label}>User ID — created in our database on first sign-in</p>
             <code className="block break-all text-xs text-zinc-500">{user.id}</code>
           </section>
 
           <section className={card}>
-            <h2 className="text-lg font-medium">Tracked postings</h2>
+            <h2 className="text-lg font-medium">Job applications</h2>
             <p className={label}>Stored by the ASP.NET Core API in PostgreSQL</p>
 
-            <form className="flex gap-2" onSubmit={addJob}>
+            <form className="flex gap-2" onSubmit={addApplication}>
               <input
                 className={input}
-                placeholder="Job title"
+                placeholder="Position"
                 maxLength={160}
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
+                value={position}
+                onChange={(event) => setPosition(event.target.value)}
               />
               <input
                 className={input}
@@ -176,13 +175,17 @@ export default function Page() {
 
             {error && <p className="text-sm text-red-600">{error}</p>}
 
-            {jobs.length === 0 ? (
-              <p className="text-sm text-zinc-500">Nothing yet — add your first posting above.</p>
+            {applications.length === 0 ? (
+              <p className="text-sm text-zinc-500">Nothing yet — add your first application.</p>
             ) : (
               <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                {jobs.map((job) => (
-                  <li key={job.id} className="py-2 text-sm">
-                    {job.title} · <span className="text-zinc-500">{job.company}</span>
+                {applications.map((application) => (
+                  <li key={application.id} className="flex justify-between py-2 text-sm">
+                    <span>
+                      {application.position} ·{' '}
+                      <span className="text-zinc-500">{application.company}</span>
+                    </span>
+                    <span className="text-zinc-500">{application.status}</span>
                   </li>
                 ))}
               </ul>

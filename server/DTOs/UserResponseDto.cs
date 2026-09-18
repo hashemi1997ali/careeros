@@ -1,8 +1,8 @@
 using server.Models;
 
-namespace server.Dtos;
+namespace server.DTOs;
 
-public record UserDto(
+public record UserResponseDto(
     Guid Id,
     string AuthSub,
     string? Email,
@@ -11,7 +11,7 @@ public record UserDto(
     DateTimeOffset CreatedAt,
     DateTimeOffset? LastLoginAt)
 {
-    public static UserDto From(User user) => new(
+    public static UserResponseDto From(User user) => new(
         user.Id,
         user.AuthSub,
         user.Email,
@@ -21,4 +21,4 @@ public record UserDto(
         user.LastLoginAt);
 }
 
-public record SyncResponse(UserDto User);
+public record SyncUserResponseDto(UserResponseDto User);

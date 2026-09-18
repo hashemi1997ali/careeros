@@ -1,7 +1,9 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using server.Data;
 using server.Infrastructure;
@@ -19,15 +21,20 @@ if (string.IsNullOrWhiteSpace(connectionString))
     throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured");
 }
 
-if (string.IsNullOrWhiteSpace(oidcIssuer))
+if (!Uri.TryCreate(oidcIssuer, UriKind.Absolute, out var issuerUri) ||
+    issuerUri.Scheme != Uri.UriSchemeHttps)
 {
-    throw new InvalidOperationException("Oidc:Issuer is not configured");
+    throw new InvalidOperationException("Oidc:Issuer must be a valid HTTPS URL");
 }
 
 if (string.IsNullOrWhiteSpace(oidcAudience))
 {
     throw new InvalidOperationException("Oidc:Audience is not configured");
 }
+
+var authority = issuerUri.AbsoluteUri.EndsWith('/')
+    ? issuerUri.AbsoluteUri
+    : issuerUri.AbsoluteUri + "/";
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
@@ -60,16 +67,19 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<AppDbContext>("database", tags: ["ready"]);
 
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<OidcDiscovery>();
-builder.Services.AddHttpClient<UserProvisioningService>();
+builder.Services.AddHttpClient<UserProvisioningService>(client =>
+    client.Timeout = TimeSpan.FromSeconds(10));
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.Authority = oidcIssuer.EndsWith('/') ? oidcIssuer : oidcIssuer + "/";
+        options.Authority = authority;
         options.Audience = oidcAudience;
         options.SaveToken = true;
         options.MapInboundClaims = false;
@@ -82,28 +92,17 @@ builder.Services
             ClockSkew = TimeSpan.FromSeconds(30)
         };
     });
-builder.Services.AddAuthorization();
 
-builder.Services.Configure<ForwardedHeadersOptions>(options =>
-{
-    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    options.KnownIPNetworks.Clear();
-    options.KnownProxies.Clear();
-});
+builder.Services.AddAuthorizationBuilder()
+    .SetFallbackPolicy(new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build());
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    context.Database.Migrate();
-}
-
-app.UseForwardedHeaders();
-
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.MapOpenApi().AllowAnonymous();
 }
 
 app.UseExceptionHandler();
@@ -113,12 +112,34 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapGet("/api/health", () => Results.Ok(new
+var readyOptions = new HealthCheckOptions
 {
-    status = "Healthy",
-    timestampUtc = DateTime.UtcNow
-})).AllowAnonymous();
+    Predicate = registration => registration.Tags.Contains("ready"),
+    ResponseWriter = WriteHealthResponse
+};
+
+app.MapHealthChecks("/health", readyOptions).AllowAnonymous();
+app.MapHealthChecks("/health/ready", readyOptions).AllowAnonymous();
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false,
+    ResponseWriter = WriteHealthResponse
+}).AllowAnonymous();
 
 app.Run();
+
+static Task WriteHealthResponse(HttpContext context, HealthReport report)
+{
+    context.Response.ContentType = "application/json";
+
+    return context.Response.WriteAsJsonAsync(new
+    {
+        status = report.Status.ToString(),
+        checks = report.Entries.ToDictionary(
+            entry => entry.Key,
+            entry => entry.Value.Status.ToString()),
+        durationMilliseconds = Math.Round(report.TotalDuration.TotalMilliseconds, 2)
+    });
+}
 
 public partial class Program;

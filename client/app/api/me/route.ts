@@ -1,28 +1,49 @@
-import { NextResponse, type NextRequest } from "next/server";
-import { config } from "@/lib/config";
-import { persistIfRenewed, resolveSession } from "@/lib/auth";
+import { NextResponse } from 'next/server'
+import { getApiAccessToken } from '@/lib/api-auth'
+import { auth0 } from '@/lib/auth0'
+import { config } from '@/lib/config'
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
-export async function GET(request: NextRequest) {
-  const resolved = await resolveSession(request);
+interface SyncedUser {
+  id: string
+  authSub: string
+  email: string | null
+  displayName: string | null
+}
 
-  if (!resolved) {
-    return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+export async function GET() {
+  const session = await auth0.getSession()
+  const accessToken = await getApiAccessToken()
+
+  if (!session || !accessToken) {
+    return NextResponse.json({ error: 'not_authenticated' }, { status: 401 })
   }
 
-  const { session } = resolved;
+  const response = await fetch(`${config().SERVER_URL}/api/users/sync`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    cache: 'no-store',
+  })
 
-  const response = NextResponse.json({
-    user: {
-      id: session.userId,
-      sub: session.sub,
-      email: session.email,
-      displayName: session.displayName,
+  if (!response.ok) {
+    console.error('[api/me] user synchronization failed with status', response.status)
+    return NextResponse.json({ error: 'user_sync_failed' }, { status: 502 })
+  }
+
+  const { user } = (await response.json()) as { user: SyncedUser }
+
+  return NextResponse.json(
+    {
+      user: {
+        id: user.id,
+        sub: user.authSub,
+        email: user.email ?? session.user.email ?? null,
+        displayName: user.displayName ?? session.user.name ?? null,
+      },
+      skillsAppUrl: config().SKILLS_APP_URL ?? null,
     },
-    skillsAppUrl: config().SKILLS_APP_URL ?? null,
-  });
-
-  return persistIfRenewed(response, resolved);
+    { headers: { 'Cache-Control': 'no-store' } },
+  )
 }

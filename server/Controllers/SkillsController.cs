@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using server.DTOs;
 using server.Services.Interfaces;
@@ -6,6 +7,7 @@ using server.Models;
 namespace server.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/skills")]
 public class SkillsController : ControllerBase
 {

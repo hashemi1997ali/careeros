@@ -10,10 +10,12 @@ namespace server.Services;
 public class SkillService : ISkillService
 {
     private readonly AppDbContext _context;
+    private readonly ICurrentUserService _currentUser;
 
-    public SkillService(AppDbContext context)
+    public SkillService(AppDbContext context, ICurrentUserService currentUser)
     {
         _context = context;
+        _currentUser = currentUser;
     }
 
     public async Task<IReadOnlyList<SkillResponseDto>> GetAllAsync(
@@ -22,7 +24,10 @@ public class SkillService : ISkillService
         SkillLevel? level,
         CancellationToken cancellationToken)
     {
-        var query = _context.Skills.AsNoTracking();
+        var userId = await _currentUser.GetRequiredUserIdAsync(cancellationToken);
+        var query = _context.Skills
+            .AsNoTracking()
+            .Where(skill => skill.UserId == userId);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -57,9 +62,11 @@ public class SkillService : ISkillService
 
     public async Task<SkillResponseDto?> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
+        var userId = await _currentUser.GetRequiredUserIdAsync(cancellationToken);
+
         return await _context.Skills
             .AsNoTracking()
-            .Where(skill => skill.Id == id)
+            .Where(skill => skill.Id == id && skill.UserId == userId)
             .Select(skill => new SkillResponseDto
             {
                 Id = skill.Id,
@@ -74,13 +81,15 @@ public class SkillService : ISkillService
         CreateSkillDto dto,
         CancellationToken cancellationToken)
     {
+        var userId = await _currentUser.GetRequiredUserIdAsync(cancellationToken);
         var name = dto.Name.Trim();
         var category = dto.Category.Trim();
 
-        await EnsureUniqueAsync(name, category, null, cancellationToken);
+        await EnsureUniqueAsync(userId, name, category, null, cancellationToken);
 
         var skill = new Skill
         {
+            UserId = userId,
             Name = name,
             Category = category,
             Level = dto.Level!.Value
@@ -104,7 +113,10 @@ public class SkillService : ISkillService
         UpdateSkillDto dto,
         CancellationToken cancellationToken)
     {
-        var skill = await _context.Skills.FindAsync([id], cancellationToken);
+        var userId = await _currentUser.GetRequiredUserIdAsync(cancellationToken);
+        var skill = await _context.Skills.FirstOrDefaultAsync(
+            item => item.Id == id && item.UserId == userId,
+            cancellationToken);
 
         if (skill == null)
         {
@@ -114,7 +126,7 @@ public class SkillService : ISkillService
         var name = dto.Name.Trim();
         var category = dto.Category.Trim();
 
-        await EnsureUniqueAsync(name, category, id, cancellationToken);
+        await EnsureUniqueAsync(userId, name, category, id, cancellationToken);
 
         skill.Name = name;
         skill.Category = category;
@@ -127,7 +139,10 @@ public class SkillService : ISkillService
 
     public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken)
     {
-        var skill = await _context.Skills.FindAsync([id], cancellationToken);
+        var userId = await _currentUser.GetRequiredUserIdAsync(cancellationToken);
+        var skill = await _context.Skills.FirstOrDefaultAsync(
+            item => item.Id == id && item.UserId == userId,
+            cancellationToken);
 
         if (skill == null)
         {
@@ -142,6 +157,7 @@ public class SkillService : ISkillService
     }
 
     private async Task EnsureUniqueAsync(
+        Guid userId,
         string name,
         string category,
         int? excludedId,
@@ -152,6 +168,7 @@ public class SkillService : ISkillService
 
         var exists = await _context.Skills.AnyAsync(
             skill =>
+                skill.UserId == userId &&
                 (!excludedId.HasValue || skill.Id != excludedId.Value) &&
                 skill.Name.ToLower() == normalizedName &&
                 skill.Category.ToLower() == normalizedCategory,

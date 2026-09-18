@@ -4,28 +4,40 @@ const serviceUrl = z.url().refine((value) => !value.endsWith('/'), {
   message: 'URL must not end with a slash',
 })
 
-const schema = z.object({
+const careerOsSchema = z.object({
   SERVER_URL: serviceUrl,
-  SKILLS_API_URL: serviceUrl,
   SKILLS_APP_URL: serviceUrl.optional(),
 })
 
-export type Config = z.infer<typeof schema>
+const skillsSchema = z.object({
+  SKILLS_API_URL: serviceUrl,
+})
 
-let cached: Config | null = null
+export type CareerOsConfig = z.infer<typeof careerOsSchema>
+export type SkillsConfig = z.infer<typeof skillsSchema>
 
-export const config = (): Config => {
-  if (cached) return cached
+let careerOsConfig: CareerOsConfig | null = null
+let skillsConfig: SkillsConfig | null = null
 
+const parseConfig = <T>(schema: z.ZodType<T>, name: string): T => {
   const parsed = schema.safeParse(process.env)
 
   if (!parsed.success) {
     const issues = parsed.error.issues
       .map((issue) => `  ${issue.path.join('.') || '(root)'}: ${issue.message}`)
       .join('\n')
-    throw new Error(`Invalid service configuration:\n${issues}`)
+    throw new Error(`Invalid ${name} configuration:\n${issues}`)
   }
 
-  cached = parsed.data
-  return cached
+  return parsed.data
+}
+
+export const careerOs = (): CareerOsConfig => {
+  careerOsConfig ??= parseConfig(careerOsSchema, 'CareerOS service')
+  return careerOsConfig
+}
+
+export const skills = (): SkillsConfig => {
+  skillsConfig ??= parseConfig(skillsSchema, 'SkillForge service')
+  return skillsConfig
 }

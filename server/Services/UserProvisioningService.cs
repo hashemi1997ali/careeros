@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using server.Data;
+using server.Exceptions;
 using server.Models;
 
 namespace server.Services;
@@ -30,32 +31,57 @@ public class UserProvisioningService
     private readonly AppDbContext _context;
     private readonly OidcDiscovery _discovery;
     private readonly HttpClient _http;
+    private readonly ILogger<UserProvisioningService> _logger;
 
-    public UserProvisioningService(AppDbContext context, OidcDiscovery discovery, HttpClient http)
+    public UserProvisioningService(
+        AppDbContext context,
+        OidcDiscovery discovery,
+        HttpClient http,
+        ILogger<UserProvisioningService> logger)
     {
         _context = context;
         _discovery = discovery;
         _http = http;
+        _logger = logger;
     }
 
     public async Task<UserInfo> FetchUserInfoAsync(string accessToken, CancellationToken cancellationToken = default)
     {
-        var document = await _discovery.GetAsync(cancellationToken);
-
-        using var request = new HttpRequestMessage(HttpMethod.Get, document.UserInfoEndpoint);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-
-        using var response = await _http.SendAsync(request, cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            var body = await response.Content.ReadAsStringAsync(cancellationToken);
-            throw new HttpRequestException(
-                $"userinfo returned {(int)response.StatusCode}: {body}");
-        }
+            var document = await _discovery.GetAsync(cancellationToken);
 
-        return await response.Content.ReadFromJsonAsync<UserInfo>(cancellationToken)
-            ?? throw new HttpRequestException("userinfo returned an empty body");
+            using var request = new HttpRequestMessage(HttpMethod.Get, document.UserInfoEndpoint);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+            using var response = await _http.SendAsync(request, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning(
+                    "The identity provider userinfo endpoint returned status {StatusCode}",
+                    (int)response.StatusCode);
+                throw new IdentityProviderException("The userinfo request was rejected.");
+            }
+
+            var info = await response.Content.ReadFromJsonAsync<UserInfo>(cancellationToken)
+                ?? throw new IdentityProviderException("The userinfo response was empty.");
+
+            if (string.IsNullOrWhiteSpace(info.Sub))
+            {
+                throw new IdentityProviderException("The userinfo response did not contain a subject.");
+            }
+
+            return info;
+        }
+        catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new IdentityProviderException("The userinfo request timed out.", exception);
+        }
+        catch (HttpRequestException exception)
+        {
+            throw new IdentityProviderException("The userinfo request failed.", exception);
+        }
     }
 
     public async Task<User> UpsertAsync(UserInfo info, CancellationToken cancellationToken = default)
@@ -86,6 +112,12 @@ public class UserProvisioningService
                 .FirstOrDefaultAsync(u => u.AuthSub == info.Sub, cancellationToken);
 
             if (existing is null) throw;
+
+            existing.Email = info.Email;
+            existing.DisplayName = info.Name ?? info.Nickname ?? info.Email;
+            existing.PictureUrl = info.Picture;
+            existing.LastLoginAt = DateTimeOffset.UtcNow;
+            await _context.SaveChangesAsync(cancellationToken);
 
             return existing;
         }

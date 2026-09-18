@@ -1,7 +1,7 @@
 # CareerOS
 
 CareerOS is a career-management platform for tracking skills, project evidence,
-job postings, job applications, requirements, match scores, and skill gaps.
+job applications, requirements, match scores, and skill gaps.
 
 The repository contains a Next.js Backend-for-Frontend and an ASP.NET Core API:
 
@@ -18,12 +18,12 @@ reuse the provider session in the other app.
 
 ## Authentication and data ownership
 
-- The Next.js client performs Authorization Code + PKCE login, refreshes tokens,
-  and stores its session in an encrypted HTTP-only cookie.
+- The official Auth0 Next.js SDK performs Authorization Code + PKCE login,
+  refreshes tokens, and stores its session in an encrypted HTTP-only cookie.
 - The ASP.NET Core server validates JWT issuer, audience, lifetime, and signature.
 - `POST /api/users/sync` provisions or refreshes the local user from Auth0's
   `/userinfo` endpoint. The stable OIDC `sub` claim is stored as `User.AuthSub`.
-- Skills, projects, job postings, and job applications are scoped to the local
+- Skills, projects, and job applications are scoped to the local
   user derived from the validated token. A resource owned by another user is
   returned as not found.
 - Foreign keys use cascading deletes, so removing a local user removes all of
@@ -62,8 +62,8 @@ Neon's `postgresql://` URI. Example requests are in `server/server.http`.
 
 ### Client
 
-Copy `client/.env.example` to `client/.env.local`, fill in the OIDC and service
-URLs, and generate a strong `SESSION_SECRET`. Then run:
+Copy `client/.env.example` to `client/.env.local`, fill in the Auth0 and service
+URLs, and generate a 32-byte hexadecimal `AUTH0_SECRET`. Then run:
 
 ```powershell
 cd client
@@ -79,15 +79,13 @@ cookies merely because they use the same `localhost` host.
 
 All resource endpoints require a bearer token. Health endpoints are anonymous.
 
-### Account and job postings
+### Account
 
 | Method | Route | Purpose |
 |---|---|---|
 | POST | `/api/users/sync` | Provision/update the signed-in user |
 | GET | `/api/users/me` | Return the local signed-in user |
 | DELETE | `/api/users/me` | Delete the local user and owned CareerOS data |
-| GET/POST | `/api/jobs` | List/create owned job postings |
-| GET/PUT/DELETE | `/api/jobs/{id}` | Read/update/delete an owned posting |
 
 ### Skills
 
@@ -133,15 +131,18 @@ Application statuses are `Saved`, `Applied`, `HrInterview`,
 | Method | Route | Purpose |
 |---|---|---|
 | GET | `/api/dashboard` | User-scoped aggregates, match average, and missing skills |
-| GET | `/api/health` | API health response |
-| GET | `/health` | Deployment health response |
+| GET | `/health/live` | Process liveness check |
+| GET | `/health/ready` | Readiness check including PostgreSQL |
+| GET | `/health` | Readiness alias for hosting providers |
 | GET | `/openapi/v1.json` | OpenAPI document in Development |
 
 ## Deployment notes
 
 - `server/Dockerfile` builds the .NET service for Render.
-- `UseForwardedHeaders` handles TLS termination at the reverse proxy.
 - The server validates tokens but has no OIDC client secret; only the Next.js
   client obtains tokens and therefore needs the client secret.
-- Database migrations currently run at API startup. Move them to a dedicated
-  deployment step before horizontally scaling the API.
+- `User.Id` is a UUID because it crosses identity/service boundaries. Internal
+  aggregate keys remain compact database-generated integers; authorization is
+  enforced by owner foreign keys rather than by making identifiers unguessable.
+- Apply database migrations as a dedicated deployment step before starting or
+  scaling the API; the running application never changes the schema itself.

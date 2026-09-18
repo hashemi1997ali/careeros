@@ -18,8 +18,6 @@ public class User
 
     public DateTimeOffset? LastLoginAt { get; set; }
 
-    public ICollection<JobPosting> JobPostings { get; set; } = new List<JobPosting>();
-
     public ICollection<Skill> Skills { get; set; } = new List<Skill>();
 
     public ICollection<Project> Projects { get; set; } = new List<Project>();

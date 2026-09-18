@@ -32,6 +32,10 @@ public class ApiExceptionHandler(
                 StatusCodes.Status401Unauthorized,
                 "Authentication required",
                 exception.Message),
+            IdentityProviderException => (
+                StatusCodes.Status502BadGateway,
+                "Identity provider unavailable",
+                "The user profile could not be synchronized with the identity provider."),
             DbUpdateException => (
                 StatusCodes.Status409Conflict,
                 "Database conflict",

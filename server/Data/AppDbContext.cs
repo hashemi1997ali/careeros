@@ -14,7 +14,6 @@ public class AppDbContext : DbContext
     public DbSet<Skill> Skills => Set<Skill>();
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<ProjectSkill> ProjectSkills => Set<ProjectSkill>();
-    public DbSet<JobPosting> JobPostings => Set<JobPosting>();
     public DbSet<JobApplication> JobApplications => Set<JobApplication>();
     public DbSet<JobRequirement> JobRequirements => Set<JobRequirement>();
 
@@ -42,7 +41,8 @@ public class AppDbContext : DbContext
                 .WithMany(user => user.Skills)
                 .HasForeignKey(skill => skill.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
-            entity.HasIndex(skill => new { skill.UserId, skill.Name, skill.Category });
+            entity.HasIndex(skill => new { skill.UserId, skill.Name, skill.Category })
+                .IsUnique();
         });
 
         modelBuilder.Entity<Project>(entity =>
@@ -71,20 +71,6 @@ public class AppDbContext : DbContext
                 .WithMany(skill => skill.ProjectSkills)
                 .HasForeignKey(projectSkill => projectSkill.SkillId)
                 .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<JobPosting>(entity =>
-        {
-            entity.Property(posting => posting.Id).HasDefaultValueSql("gen_random_uuid()");
-            entity.Property(posting => posting.Title).IsRequired();
-            entity.Property(posting => posting.Company).IsRequired();
-            entity.Property(posting => posting.CreatedAt).HasDefaultValueSql("now()");
-            entity.Property(posting => posting.UpdatedAt).HasDefaultValueSql("now()");
-            entity.HasOne(posting => posting.User)
-                .WithMany(user => user.JobPostings)
-                .HasForeignKey(posting => posting.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-            entity.HasIndex(posting => posting.UserId);
         });
 
         modelBuilder.Entity<JobApplication>(entity =>
@@ -153,18 +139,6 @@ public class AppDbContext : DbContext
                 if (entry.State is EntityState.Added or EntityState.Modified)
                 {
                     user.UpdatedAt = now;
-                }
-            }
-            else if (entry.Entity is JobPosting posting)
-            {
-                if (entry.State == EntityState.Added)
-                {
-                    posting.CreatedAt = now;
-                }
-
-                if (entry.State is EntityState.Added or EntityState.Modified)
-                {
-                    posting.UpdatedAt = now;
                 }
             }
         }

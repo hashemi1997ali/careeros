@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getApiAccessToken } from '@/lib/api-auth'
 import { auth0 } from '@/lib/auth0'
-import { config } from '@/lib/config'
+import { careerOs } from '@/lib/config'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -21,7 +21,7 @@ export async function GET() {
     return NextResponse.json({ error: 'not_authenticated' }, { status: 401 })
   }
 
-  const response = await fetch(`${config().SERVER_URL}/api/users/sync`, {
+  const response = await fetch(`${careerOs().SERVER_URL}/api/users/sync`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}` },
     cache: 'no-store',
@@ -42,7 +42,7 @@ export async function GET() {
         email: user.email ?? session.user.email ?? null,
         displayName: user.displayName ?? session.user.name ?? null,
       },
-      skillsAppUrl: config().SKILLS_APP_URL ?? null,
+      skillsAppUrl: careerOs().SKILLS_APP_URL ?? null,
     },
     { headers: { 'Cache-Control': 'no-store' } },
   )

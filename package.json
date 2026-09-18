@@ -1,0 +1,19 @@
+{
+  "name": "careeros",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail --names api,web --prefix-colors blue,cyan \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "dotnet watch --project server/server.csproj --no-restore run --no-restore --launch-profile http",
+    "dev:web": "npm --prefix client run dev",
+    "build": "npm run build:api && npm run build:web",
+    "build:api": "dotnet build server/server.csproj --configuration Release",
+    "build:web": "npm --prefix client run build",
+    "lint": "npm --prefix client run lint",
+    "typecheck": "npm --prefix client run typecheck",
+    "setup": "npm install --prefix client && dotnet restore server/server.csproj"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}

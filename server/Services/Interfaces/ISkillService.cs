@@ -1,16 +1,21 @@
 using server.DTOs;
+using server.Models;
 
 namespace server.Services.Interfaces;
 
 public interface ISkillService
 {
-    Task<IEnumerable<SkillResponseDto>> GetAllAsync();
+    Task<IReadOnlyList<SkillResponseDto>> GetAllAsync(
+        string? search,
+        string? category,
+        SkillLevel? level,
+        CancellationToken cancellationToken);
 
-    Task<SkillResponseDto?> GetByIdAsync(int id);
+    Task<SkillResponseDto?> GetByIdAsync(int id, CancellationToken cancellationToken);
 
-    Task<SkillResponseDto> CreateAsync(CreateSkillDto dto);
+    Task<SkillResponseDto> CreateAsync(CreateSkillDto dto, CancellationToken cancellationToken);
 
-    Task<bool> UpdateAsync(int id, UpdateSkillDto dto);
+    Task<bool> UpdateAsync(int id, UpdateSkillDto dto, CancellationToken cancellationToken);
 
-    Task<bool> DeleteAsync(int id);
+    Task<bool> DeleteAsync(int id, CancellationToken cancellationToken);
 }

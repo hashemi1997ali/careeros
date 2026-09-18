@@ -27,7 +27,15 @@ public class OidcDiscovery
         var authority = configuration["Oidc:Issuer"]
             ?? throw new InvalidOperationException("Oidc:Issuer is not configured");
 
-        _authority = authority.EndsWith('/') ? authority : authority + "/";
+        if (!Uri.TryCreate(authority, UriKind.Absolute, out var issuer) ||
+            issuer.Scheme != Uri.UriSchemeHttps)
+        {
+            throw new InvalidOperationException("Oidc:Issuer must be a valid HTTPS URL");
+        }
+
+        _authority = issuer.AbsoluteUri.EndsWith('/')
+            ? issuer.AbsoluteUri
+            : issuer.AbsoluteUri + "/";
     }
 
     public async Task<OidcDocument> GetAsync(CancellationToken cancellationToken = default)
@@ -45,6 +53,21 @@ public class OidcDiscovery
 
             var document = await http.GetFromJsonAsync<OidcDocument>(url, cancellationToken)
                 ?? throw new InvalidOperationException($"Empty discovery document at {url}");
+
+            if (!string.Equals(
+                    document.Issuer.TrimEnd('/'),
+                    _authority.TrimEnd('/'),
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("The discovery document issuer is invalid");
+            }
+
+            if (!Uri.TryCreate(document.UserInfoEndpoint, UriKind.Absolute, out var userInfoUri) ||
+                userInfoUri.Scheme != Uri.UriSchemeHttps)
+            {
+                throw new InvalidOperationException(
+                    "The discovery document does not contain a valid HTTPS userinfo endpoint");
+            }
 
             _cached = document;
             return document;

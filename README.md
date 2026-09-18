@@ -1,223 +1,148 @@
 # CareerOS
 
-Job posting analysis. A Next.js application holds the user session and acts as
-the Backend-for-Frontend; an ASP.NET Core service owns the business logic and
-the PostgreSQL database.
+CareerOS is a career-management platform for tracking skills, project evidence,
+job applications, requirements, match scores, and skill gaps.
 
-Companion repository: **SkillForge** (Angular + Express). The two applications
-share one identity provider, so signing in to either signs you in to both.
+The repository contains a Next.js Backend-for-Frontend and an ASP.NET Core API:
 
----
-
-## Shape
-
-```
-browser ──> Next.js on Vercel             (session cookie, first-party)
-              ├── /                       React page
-              ├── /auth/*                 OIDC: login, callback, logout
-              ├── /api/me                 who is signed in
-              ├── /api/jobs          ──>  ASP.NET Core API (Bearer + audience)
-              └── /api/peer/skills   ──>  SkillForge API   (Bearer + audience)
-
-ASP.NET Core on Render ──> Neon PostgreSQL (EF Core + Npgsql)
+```text
+browser -> client/ (Next.js, encrypted first-party session)
+               -> server/ (ASP.NET Core, bearer-token API)
+                         -> PostgreSQL (EF Core + Npgsql)
 ```
 
-The browser only ever talks to the Vercel origin, so the session cookie is
-first-party and there is no CORS configuration anywhere. Both outbound calls
-happen server to server and carry the user's access token.
+CareerOS and the companion SkillForge application use the same Auth0 tenant.
+Each application has its own OIDC client, while both APIs validate access tokens
+for the shared API audience. Auth0 single sign-on means signing in to one app can
+reuse the provider session in the other app.
 
-### Why the sign-in lives in `client` and not in `server`
+## Authentication and data ownership
 
-The two halves have different jobs, and only one of them logs anyone in.
+- The official Auth0 Next.js SDK performs Authorization Code + PKCE login,
+  refreshes tokens, and stores its session in an encrypted HTTP-only cookie.
+- The ASP.NET Core server validates JWT issuer, audience, lifetime, and signature.
+- `POST /api/users/sync` provisions or refreshes the local user from Auth0's
+  `/userinfo` endpoint. The stable OIDC `sub` claim is stored as `User.AuthSub`.
+- Skills, projects, and job applications are scoped to the local
+  user derived from the validated token. A resource owned by another user is
+  returned as not found.
+- Foreign keys use cascading deletes, so removing a local user removes all of
+  that user's CareerOS data.
 
-| | `client` (Next.js) | `server` (ASP.NET Core) |
-| --- | --- | --- |
-| Signs users in | yes | **no** |
-| Answers with data given a token | no | yes |
-| Needs a client secret | yes | **no** |
-| Needs a session key | yes | **no** |
+Deleting the Auth0 identity across CareerOS and SkillForge is a separate account
+orchestration feature. The current API guarantees local ownership and cleanup;
+it does not use Auth0 Management API credentials to delete the central identity.
 
-`server` is a *resource server*. It receives an access token that `client`
-obtained and answers one question before doing any work: is this token genuine,
-and is it addressed to me? Signatures are verified with the provider's **public**
-keys, published openly at `jwks_uri`, so no secret is needed to check one. A
-secret is needed only to *obtain* tokens — which `server` never does.
+## Backend stack
 
-This is why `server/appsettings.json` has no client id and no client secret. It
-is not an omission. There is nothing to steal from that configuration.
+- .NET 10 / ASP.NET Core Controllers
+- Entity Framework Core and PostgreSQL (Neon)
+- Auth0-compatible OIDC/JWT bearer authentication
+- OpenAPI
+- Service layer and request/response DTOs
+- RFC 7807 Problem Details error responses
 
-### Why C# on one side and TypeScript on the other is fine
+## Local setup
 
-The boundary between the two services is a **token**, not a shared module. The
-Next application sends `Authorization: Bearer …` and reads JSON; what produced
-that JSON is invisible to it. Replacing the API with a service in any other
-language would not change one line in `client`.
+### Server
 
----
+From `server/`:
 
-## Layout
-
-```
-client/lib/config.ts             lazy env validation, discovery, JWKS
-client/lib/session.ts            encrypted (JWE) session cookie
-client/lib/auth.ts               OIDC flow, refresh, rotation
-client/app/auth/*/route.ts       login, callback, logout
-client/app/api/*/route.ts        me, jobs, peer skills
-client/proxy.ts                  development host guard
-
-server/Program.cs                configuration, JWT bearer, pipeline
-server/Models/                   User, JobPosting, Skill
-server/Data/AppDbContext.cs      mapping, indexes, timestamps
-server/Services/                 OIDC discovery, just-in-time provisioning
-server/Dtos/                     the public shape of the API
-server/Controllers/              users, jobs, skills, health
-server/Dockerfile                Render has no native .NET runtime
-```
-
-## Where a user comes from
-
-There is no registration endpoint. People register with the identity provider;
-the row in `Users` is created on the **first successful sign-in** and refreshed
-on every later one — just-in-time provisioning.
-
-`client` calls `POST /api/users/sync` with the user's access token. `server`
-verifies that token, then asks the provider's `/userinfo` endpoint who it
-belongs to rather than trusting the caller's word for the e-mail address, and
-upserts on `AuthSub`.
-
-`AuthSub` is the `sub` claim: stable for the life of the account and unchanged
-by e-mail, username or password changes. That is why it, and not the e-mail
-address, is the key.
-
----
-
-## Running locally
-
-### 0. Hostnames — required
-
-```bash
-echo "127.0.0.1 careeros.localhost skillforge.localhost" | sudo tee -a /etc/hosts
-```
-
-Chrome, Edge and Firefox resolve any `*.localhost` name to 127.0.0.1 by
-themselves. **Node.js does not** — `dns.lookup('skillforge.localhost')` returns
-`ENOTFOUND` — and `client` calls the other team's service by hostname, server to
-server. Safari does not either.
-
-Open the site at `http://careeros.localhost:3000`, **not** at the `localhost`
-line Next prints on startup. Cookies are bound to a host: a sign-in started on
-the wrong one leaves its cookie there, the provider returns the browser to the
-`BASE_URL` host, the cookie is not sent, and the callback fails on a missing
-state. `client/proxy.ts` redirects in development if you forget.
-
-Two hostnames rather than two ports, because cookies are **not** isolated by
-port: with both applications on `localhost`, one application's session cookie
-would reach the other and the single sign-on demo would appear to work for
-entirely the wrong reason.
-
-### 1. Server
-
-```bash
-cd server
-
-# Secrets stay out of the repository. The project already has a UserSecretsId.
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=ep-xxx-pooler.c-2.eu-central-1.aws.neon.tech;Database=neondb;Username=neondb_owner;Password=...;SSL Mode=VerifyFull;Channel Binding=Require"
-dotnet user-secrets set "Oidc:Issuer"   "https://YOUR-TENANT.eu.auth0.com"
+```powershell
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "YOUR_NPGSQL_CONNECTION_STRING"
+dotnet user-secrets set "Oidc:Issuer" "https://YOUR-TENANT.eu.auth0.com"
 dotnet user-secrets set "Oidc:Audience" "https://skillbridge-api"
-
-dotnet tool install --global dotnet-ef      # once per machine
-dotnet ef migrations add AddUsersAndJobPostings
-dotnet run                                   # http://localhost:4000
+dotnet restore
+dotnet ef database update
+dotnet run
 ```
 
-> **The connection string is the trap.** Npgsql does **not** parse the
-> `postgresql://…` URI Neon shows by default. It needs the key-value form above.
-> Copying Neon's string straight into configuration fails with an error that
-> does not mention the format at all.
+The PostgreSQL connection string must use Npgsql's key/value format rather than
+Neon's `postgresql://` URI. Example requests are in `server/server.http`.
 
-Migrations are applied automatically at startup, so `dotnet ef database update`
-is not needed separately. With one instance that is the simplest thing that
-works; the day two instances start at once, migrations move to a step that runs
-before the service does.
+### Client
 
-### 2. Client
+Copy `client/.env.example` to `client/.env.local`, fill in the Auth0 and service
+URLs, and generate a 32-byte hexadecimal `AUTH0_SECRET`. Then run:
 
-```bash
+```powershell
 cd client
-cp .env.example .env.local
-node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"   # SESSION_SECRET
-
 npm install
-npm run dev                                  # http://careeros.localhost:3000
+npm run dev
 ```
 
----
+For the local SSO setup, open `http://careeros.localhost:3000`; using separate
+`*.localhost` hostnames prevents the two applications from accidentally sharing
+cookies merely because they use the same `localhost` host.
 
-## Deploying
+## API
 
-### server → Render
+All resource endpoints require a bearer token. Health endpoints are anonymous.
 
-| Setting | Value |
-| --- | --- |
-| Language | Docker |
-| Dockerfile Path | `./server/Dockerfile` |
-| Docker Build Context Directory | `.` *(repository root)* |
-| Health Check Path | `/health` |
+### Account
 
-Render has native runtimes for Node, Python, Ruby, Go, Rust and Elixir — not
-for .NET — so the service ships as a container. The Dockerfile is two stages:
-the SDK compiles, and only the compiled output reaches the runtime image.
+| Method | Route | Purpose |
+|---|---|---|
+| POST | `/api/users/sync` | Provision/update the signed-in user |
+| GET | `/api/users/me` | Return the local signed-in user |
+| DELETE | `/api/users/me` | Delete the local user and owned CareerOS data |
 
-Environment variables:
+### Skills
 
-```
-ConnectionStrings__DefaultConnection
-Oidc__Issuer
-Oidc__Audience
-```
+| Method | Route | Purpose |
+|---|---|---|
+| GET | `/api/skills` | List/filter owned skills (`search`, `category`, `level`) |
+| GET | `/api/skills/{id}` | Get one skill |
+| POST | `/api/skills` | Create a skill |
+| PUT | `/api/skills/{id}` | Replace a skill |
+| DELETE | `/api/skills/{id}` | Delete a skill |
 
-The double underscore is how ASP.NET Core spells a configuration section
-separator in an environment variable. No code is needed to read them.
+Skill levels are `Beginner`, `Intermediate`, and `Advanced`.
 
-Three things in `Program.cs` exist specifically for this platform:
+### Projects
 
-- **No `UseHttpsRedirection`.** Render terminates TLS at its edge and forwards
-  plain HTTP inside. A redirect to HTTPS would bounce the caller to the address
-  it just came from, and the health probe would see a 307 and restart the
-  service in a loop.
-- **`UseForwardedHeaders`**, with `KnownNetworks`/`KnownProxies` cleared,
-  because Render's proxy is not on the loopback network. Without this the
-  application believes every request came over HTTP from an internal address.
-- **`ASPNETCORE_URLS` built from `PORT`** in the Dockerfile entrypoint, bound to
-  `0.0.0.0`. Binding to localhost inside a container looks exactly like a crash
-  from the outside.
+| Method | Route | Purpose |
+|---|---|---|
+| GET | `/api/projects` | List/filter owned projects (`search`, `skillId`) |
+| GET | `/api/projects/{id}` | Get a project and its skills |
+| POST | `/api/projects` | Create a project with `skillIds` |
+| PUT | `/api/projects/{id}` | Replace a project and its skill links |
+| DELETE | `/api/projects/{id}` | Delete a project |
+| POST | `/api/projects/{projectId}/skills/{skillId}` | Link an owned skill |
+| DELETE | `/api/projects/{projectId}/skills/{skillId}` | Unlink an owned skill |
 
-### client → Vercel
+### Job applications
 
-| Setting | Value |
-| --- | --- |
-| Root Directory | `client` |
-| Framework Preset | Next.js |
+| Method | Route | Purpose |
+|---|---|---|
+| GET | `/api/job-applications` | List/filter owned applications (`status`, `search`) |
+| GET | `/api/job-applications/{id}` | Get an application and its requirements |
+| POST | `/api/job-applications` | Create an application |
+| PUT | `/api/job-applications/{id}` | Replace an application and requirements |
+| PATCH | `/api/job-applications/{id}/status` | Update pipeline status |
+| GET | `/api/job-applications/{id}/match` | Calculate weighted match and skill gaps |
+| DELETE | `/api/job-applications/{id}` | Delete an application |
 
-Environment: everything from `client/.env.example`, with `BASE_URL` set to the
-deployed URL and `SERVER_URL` pointing at the Render service. Then add the
-deployed URL to the Auth0 callback, logout and origin lists.
+Application statuses are `Saved`, `Applied`, `HrInterview`,
+`TechnicalInterview`, `Offer`, `Rejected`, and `Withdrawn`.
 
----
+### Dashboard and operations
 
-## Notes
+| Method | Route | Purpose |
+|---|---|---|
+| GET | `/api/dashboard` | User-scoped aggregates, match average, and missing skills |
+| GET | `/health/live` | Process liveness check |
+| GET | `/health/ready` | Readiness check including PostgreSQL |
+| GET | `/health` | Readiness alias for hosting providers |
+| GET | `/openapi/v1.json` | OpenAPI document in Development |
 
-- Sessions are encrypted cookies, not server state: restarts and extra
-  instances sign nobody out.
-- Refresh tokens are requested with `offline_access` and rotated. The provider
-  generates, stores and revokes them; handling rotation is the only part that
-  stays ours.
-- `MapInboundClaims = false` keeps the `sub` claim named `sub`. ASP.NET Core
-  otherwise rewrites inbound claims to legacy WS-Federation URIs, and the same
-  identifier then looks different here than in every other service.
-- Controllers return DTOs, never entities. Adding an internal column later
-  should not silently publish it.
-- Ownership always comes from the token, never from the request body. Job
-  postings have no `UserId` field in their input type for exactly this reason.
-- A posting belonging to someone else returns 404, not 403 — answering "it
-  exists but is not yours" would confirm which ids are real.
+## Deployment notes
+
+- `server/Dockerfile` builds the .NET service for Render.
+- The server validates tokens but has no OIDC client secret; only the Next.js
+  client obtains tokens and therefore needs the client secret.
+- `User.Id` is a UUID because it crosses identity/service boundaries. Internal
+  aggregate keys remain compact database-generated integers; authorization is
+  enforced by owner foreign keys rather than by making identifiers unguessable.
+- Apply database migrations as a dedicated deployment step before starting or
+  scaling the API; the running application never changes the schema itself.

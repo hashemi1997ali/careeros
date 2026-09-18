@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using server.DTOs;
 using server.Models;
@@ -6,6 +7,7 @@ using server.Services.Interfaces;
 namespace server.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/job-applications")]
 public class JobApplicationsController(IJobApplicationService jobApplicationService)
     : ControllerBase

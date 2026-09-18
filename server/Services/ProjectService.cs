@@ -7,17 +7,21 @@ using server.Services.Interfaces;
 
 namespace server.Services;
 
-public class ProjectService(AppDbContext context) : IProjectService
+public class ProjectService(
+    AppDbContext context,
+    ICurrentUserService currentUser) : IProjectService
 {
     public async Task<IReadOnlyList<ProjectResponseDto>> GetAllAsync(
         string? search,
         int? skillId,
         CancellationToken cancellationToken)
     {
+        var userId = await currentUser.GetRequiredUserIdAsync(cancellationToken);
         var query = context.Projects
             .AsNoTracking()
             .Include(project => project.ProjectSkills)
             .ThenInclude(projectSkill => projectSkill.Skill)
+            .Where(project => project.UserId == userId)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -45,11 +49,14 @@ public class ProjectService(AppDbContext context) : IProjectService
         int id,
         CancellationToken cancellationToken)
     {
+        var userId = await currentUser.GetRequiredUserIdAsync(cancellationToken);
         var project = await context.Projects
             .AsNoTracking()
             .Include(item => item.ProjectSkills)
             .ThenInclude(projectSkill => projectSkill.Skill)
-            .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(
+                item => item.Id == id && item.UserId == userId,
+                cancellationToken);
 
         return project is null ? null : Map(project);
     }
@@ -58,11 +65,13 @@ public class ProjectService(AppDbContext context) : IProjectService
         CreateProjectDto dto,
         CancellationToken cancellationToken)
     {
-        var skillIds = await GetValidSkillIdsAsync(dto.SkillIds, cancellationToken);
+        var userId = await currentUser.GetRequiredUserIdAsync(cancellationToken);
+        var skillIds = await GetValidSkillIdsAsync(userId, dto.SkillIds, cancellationToken);
         var now = DateTime.UtcNow;
 
         var project = new Project
         {
+            UserId = userId,
             Title = dto.Title.Trim(),
             Description = dto.Description.Trim(),
             RepositoryUrl = NormalizeOptional(dto.RepositoryUrl),
@@ -85,16 +94,19 @@ public class ProjectService(AppDbContext context) : IProjectService
         UpdateProjectDto dto,
         CancellationToken cancellationToken)
     {
+        var userId = await currentUser.GetRequiredUserIdAsync(cancellationToken);
         var project = await context.Projects
             .Include(item => item.ProjectSkills)
-            .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(
+                item => item.Id == id && item.UserId == userId,
+                cancellationToken);
 
         if (project is null)
         {
             return false;
         }
 
-        var skillIds = await GetValidSkillIdsAsync(dto.SkillIds, cancellationToken);
+        var skillIds = await GetValidSkillIdsAsync(userId, dto.SkillIds, cancellationToken);
 
         project.Title = dto.Title.Trim();
         project.Description = dto.Description.Trim();
@@ -118,7 +130,10 @@ public class ProjectService(AppDbContext context) : IProjectService
 
     public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken)
     {
-        var project = await context.Projects.FindAsync([id], cancellationToken);
+        var userId = await currentUser.GetRequiredUserIdAsync(cancellationToken);
+        var project = await context.Projects.FirstOrDefaultAsync(
+            item => item.Id == id && item.UserId == userId,
+            cancellationToken);
 
         if (project is null)
         {
@@ -135,12 +150,18 @@ public class ProjectService(AppDbContext context) : IProjectService
         int skillId,
         CancellationToken cancellationToken)
     {
-        if (!await context.Projects.AnyAsync(project => project.Id == projectId, cancellationToken))
+        var userId = await currentUser.GetRequiredUserIdAsync(cancellationToken);
+
+        if (!await context.Projects.AnyAsync(
+                project => project.Id == projectId && project.UserId == userId,
+                cancellationToken))
         {
             throw new ResourceNotFoundException("Project", projectId);
         }
 
-        if (!await context.Skills.AnyAsync(skill => skill.Id == skillId, cancellationToken))
+        if (!await context.Skills.AnyAsync(
+                skill => skill.Id == skillId && skill.UserId == userId,
+                cancellationToken))
         {
             throw new ResourceNotFoundException("Skill", skillId);
         }
@@ -171,12 +192,23 @@ public class ProjectService(AppDbContext context) : IProjectService
         int skillId,
         CancellationToken cancellationToken)
     {
-        if (!await context.Projects.AnyAsync(project => project.Id == projectId, cancellationToken))
+        var userId = await currentUser.GetRequiredUserIdAsync(cancellationToken);
+
+        if (!await context.Projects.AnyAsync(
+                project => project.Id == projectId && project.UserId == userId,
+                cancellationToken))
         {
             throw new ResourceNotFoundException("Project", projectId);
         }
 
-        var link = await context.ProjectSkills.FindAsync([projectId, skillId], cancellationToken);
+        var link = await context.ProjectSkills
+            .Include(projectSkill => projectSkill.Skill)
+            .FirstOrDefaultAsync(
+                projectSkill =>
+                    projectSkill.ProjectId == projectId &&
+                    projectSkill.SkillId == skillId &&
+                    projectSkill.Skill.UserId == userId,
+                cancellationToken);
 
         if (link is null)
         {
@@ -191,6 +223,7 @@ public class ProjectService(AppDbContext context) : IProjectService
     }
 
     private async Task<IReadOnlyList<int>> GetValidSkillIdsAsync(
+        Guid userId,
         IEnumerable<int> requestedIds,
         CancellationToken cancellationToken)
     {
@@ -202,7 +235,7 @@ public class ProjectService(AppDbContext context) : IProjectService
         }
 
         var existingIds = await context.Skills
-            .Where(skill => skillIds.Contains(skill.Id))
+            .Where(skill => skill.UserId == userId && skillIds.Contains(skill.Id))
             .Select(skill => skill.Id)
             .ToListAsync(cancellationToken);
 

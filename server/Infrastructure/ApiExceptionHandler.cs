@@ -28,6 +28,10 @@ public class ApiExceptionHandler(
                 StatusCodes.Status400BadRequest,
                 "Validation failed",
                 exception.Message),
+            UserNotProvisionedException => (
+                StatusCodes.Status401Unauthorized,
+                "Authentication required",
+                exception.Message),
             DbUpdateException => (
                 StatusCodes.Status409Conflict,
                 "Database conflict",

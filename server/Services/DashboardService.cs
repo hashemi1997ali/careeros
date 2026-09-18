@@ -6,19 +6,28 @@ using server.Services.Interfaces;
 
 namespace server.Services;
 
-public class DashboardService(AppDbContext context) : IDashboardService
+public class DashboardService(
+    AppDbContext context,
+    ICurrentUserService currentUser) : IDashboardService
 {
     public async Task<DashboardResponseDto> GetAsync(CancellationToken cancellationToken)
     {
-        var totalSkills = await context.Skills.CountAsync(cancellationToken);
-        var totalProjects = await context.Projects.CountAsync(cancellationToken);
+        var userId = await currentUser.GetRequiredUserIdAsync(cancellationToken);
+        var totalSkills = await context.Skills.CountAsync(
+            skill => skill.UserId == userId,
+            cancellationToken);
+        var totalProjects = await context.Projects.CountAsync(
+            project => project.UserId == userId,
+            cancellationToken);
         var skillNames = await context.Skills
             .AsNoTracking()
+            .Where(skill => skill.UserId == userId)
             .Select(skill => skill.Name)
             .ToListAsync(cancellationToken);
         var applications = await context.JobApplications
             .AsNoTracking()
             .Include(application => application.Requirements)
+            .Where(application => application.UserId == userId)
             .OrderByDescending(application => application.UpdatedAtUtc)
             .ToListAsync(cancellationToken);
 

@@ -7,16 +7,20 @@ using server.Services.Interfaces;
 
 namespace server.Services;
 
-public class JobApplicationService(AppDbContext context) : IJobApplicationService
+public class JobApplicationService(
+    AppDbContext context,
+    ICurrentUserService currentUser) : IJobApplicationService
 {
     public async Task<IReadOnlyList<JobApplicationResponseDto>> GetAllAsync(
         JobApplicationStatus? status,
         string? search,
         CancellationToken cancellationToken)
     {
+        var userId = await currentUser.GetRequiredUserIdAsync(cancellationToken);
         var query = context.JobApplications
             .AsNoTracking()
             .Include(application => application.Requirements)
+            .Where(application => application.UserId == userId)
             .AsQueryable();
 
         if (status.HasValue)
@@ -44,10 +48,13 @@ public class JobApplicationService(AppDbContext context) : IJobApplicationServic
         int id,
         CancellationToken cancellationToken)
     {
+        var userId = await currentUser.GetRequiredUserIdAsync(cancellationToken);
         var application = await context.JobApplications
             .AsNoTracking()
             .Include(item => item.Requirements)
-            .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(
+                item => item.Id == id && item.UserId == userId,
+                cancellationToken);
 
         return application is null ? null : Map(application);
     }
@@ -56,11 +63,13 @@ public class JobApplicationService(AppDbContext context) : IJobApplicationServic
         CreateJobApplicationDto dto,
         CancellationToken cancellationToken)
     {
+        var userId = await currentUser.GetRequiredUserIdAsync(cancellationToken);
         ValidateTimeline(dto.AppliedAtUtc, dto.InterviewAtUtc);
         var now = DateTime.UtcNow;
 
         var application = new JobApplication
         {
+            UserId = userId,
             Company = dto.Company.Trim(),
             Position = dto.Position.Trim(),
             JobUrl = NormalizeOptional(dto.JobUrl),
@@ -89,11 +98,14 @@ public class JobApplicationService(AppDbContext context) : IJobApplicationServic
         UpdateJobApplicationDto dto,
         CancellationToken cancellationToken)
     {
+        var userId = await currentUser.GetRequiredUserIdAsync(cancellationToken);
         ValidateTimeline(dto.AppliedAtUtc, dto.InterviewAtUtc);
 
         var application = await context.JobApplications
             .Include(item => item.Requirements)
-            .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(
+                item => item.Id == id && item.UserId == userId,
+                cancellationToken);
 
         if (application is null)
         {
@@ -128,7 +140,10 @@ public class JobApplicationService(AppDbContext context) : IJobApplicationServic
         UpdateJobApplicationStatusDto dto,
         CancellationToken cancellationToken)
     {
-        var application = await context.JobApplications.FindAsync([id], cancellationToken);
+        var userId = await currentUser.GetRequiredUserIdAsync(cancellationToken);
+        var application = await context.JobApplications.FirstOrDefaultAsync(
+            item => item.Id == id && item.UserId == userId,
+            cancellationToken);
 
         if (application is null)
         {
@@ -145,7 +160,10 @@ public class JobApplicationService(AppDbContext context) : IJobApplicationServic
 
     public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken)
     {
-        var application = await context.JobApplications.FindAsync([id], cancellationToken);
+        var userId = await currentUser.GetRequiredUserIdAsync(cancellationToken);
+        var application = await context.JobApplications.FirstOrDefaultAsync(
+            item => item.Id == id && item.UserId == userId,
+            cancellationToken);
 
         if (application is null)
         {
@@ -161,10 +179,13 @@ public class JobApplicationService(AppDbContext context) : IJobApplicationServic
         int id,
         CancellationToken cancellationToken)
     {
+        var userId = await currentUser.GetRequiredUserIdAsync(cancellationToken);
         var application = await context.JobApplications
             .AsNoTracking()
             .Include(item => item.Requirements)
-            .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(
+                item => item.Id == id && item.UserId == userId,
+                cancellationToken);
 
         if (application is null)
         {
@@ -173,6 +194,7 @@ public class JobApplicationService(AppDbContext context) : IJobApplicationServic
 
         var skillNames = await context.Skills
             .AsNoTracking()
+            .Where(skill => skill.UserId == userId)
             .Select(skill => skill.Name)
             .ToListAsync(cancellationToken);
 

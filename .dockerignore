@@ -1,0 +1,10 @@
+# Everything here would only make the build context larger and the cache
+# dirtier. The client is deployed to Vercel, not into this image.
+client/
+**/bin/
+**/obj/
+**/node_modules/
+**/.next/
+.git/
+.vscode/
+**/*.user

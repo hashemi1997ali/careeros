@@ -1,3 +1,5 @@
+using server.Models;
+
 namespace server.DTOs;
 
 public class SkillResponseDto
@@ -8,5 +10,5 @@ public class SkillResponseDto
 
     public string Category { get; set; } = string.Empty;
 
-    public string Level { get; set; } = string.Empty;
+    public SkillLevel Level { get; set; }
 }

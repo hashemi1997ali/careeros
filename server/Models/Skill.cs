@@ -8,5 +8,7 @@ public class Skill
 
     public string Category { get; set; } = string.Empty;
 
-    public string Level { get; set; } = string.Empty;
+    public SkillLevel Level { get; set; }
+
+    public ICollection<ProjectSkill> ProjectSkills { get; set; } = [];
 }

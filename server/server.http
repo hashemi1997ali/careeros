@@ -1,6 +1,108 @@
 @server_HostAddress = http://localhost:5087
+@skillId = 1
+@projectId = 1
+@applicationId = 1
 
-GET {{server_HostAddress}}/weatherforecast/
+GET {{server_HostAddress}}/api/health
 Accept: application/json
 
 ###
+
+GET {{server_HostAddress}}/api/skills?search=net&level=Intermediate
+Accept: application/json
+
+###
+
+POST {{server_HostAddress}}/api/skills
+Content-Type: application/json
+
+{
+  "name": "ASP.NET Core",
+  "category": "Backend",
+  "level": "Intermediate"
+}
+
+###
+
+GET {{server_HostAddress}}/api/skills/{{skillId}}
+Accept: application/json
+
+###
+
+PUT {{server_HostAddress}}/api/skills/{{skillId}}
+Content-Type: application/json
+
+{
+  "name": "ASP.NET Core",
+  "category": "Backend",
+  "level": "Advanced"
+}
+
+###
+
+POST {{server_HostAddress}}/api/projects
+Content-Type: application/json
+
+{
+  "title": "CareerOS",
+  "description": "A career management platform for skills, projects, and applications.",
+  "repositoryUrl": "https://github.com/example/careeros",
+  "liveUrl": null,
+  "skillIds": [{{skillId}}]
+}
+
+###
+
+GET {{server_HostAddress}}/api/projects?skillId={{skillId}}
+Accept: application/json
+
+###
+
+POST {{server_HostAddress}}/api/projects/{{projectId}}/skills/{{skillId}}
+Accept: application/json
+
+###
+
+POST {{server_HostAddress}}/api/job-applications
+Content-Type: application/json
+
+{
+  "company": "Example GmbH",
+  "position": "Junior .NET Developer",
+  "jobUrl": "https://example.com/jobs/1",
+  "location": "Berlin",
+  "salary": 50000,
+  "status": "Applied",
+  "notes": "Applied through the company website.",
+  "jobDescription": "ASP.NET Core, PostgreSQL, Docker and Azure are required.",
+  "requirements": [
+    { "name": "ASP.NET Core", "isRequired": true, "weight": 5 },
+    { "name": "PostgreSQL", "isRequired": true, "weight": 4 },
+    { "name": "Docker", "isRequired": true, "weight": 3 },
+    { "name": "Azure", "isRequired": false, "weight": 2 }
+  ]
+}
+
+###
+
+GET {{server_HostAddress}}/api/job-applications?status=Applied
+Accept: application/json
+
+###
+
+PATCH {{server_HostAddress}}/api/job-applications/{{applicationId}}/status
+Content-Type: application/json
+
+{
+  "status": "HrInterview"
+}
+
+###
+
+GET {{server_HostAddress}}/api/job-applications/{{applicationId}}/match
+Accept: application/json
+
+###
+
+GET {{server_HostAddress}}/api/dashboard
+Accept: application/json

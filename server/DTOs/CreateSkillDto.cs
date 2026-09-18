@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using server.Models;
 
 namespace server.DTOs;
 
@@ -13,9 +14,6 @@ public class CreateSkillDto
     public string Category { get; set; } = string.Empty;
 
     [Required]
-    [RegularExpression(
-        "^(Beginner|Intermediate|Advanced)$",
-        ErrorMessage = "Level must be Beginner, Intermediate, or Advanced."
-    )]
-    public string Level { get; set; } = string.Empty;
+    [EnumDataType(typeof(SkillLevel))]
+    public SkillLevel? Level { get; set; }
 }

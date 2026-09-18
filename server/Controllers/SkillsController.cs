@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using server.DTOs;
 using server.Services.Interfaces;
+using server.Models;
 
 namespace server.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/skills")]
 public class SkillsController : ControllerBase
 {
     private readonly ISkillService _skillService;
@@ -16,17 +17,30 @@ public class SkillsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<SkillResponseDto>>> GetSkills()
+    [ProducesResponseType<IReadOnlyList<SkillResponseDto>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<SkillResponseDto>>> GetSkills(
+        [FromQuery] string? search,
+        [FromQuery] string? category,
+        [FromQuery] SkillLevel? level,
+        CancellationToken cancellationToken)
     {
-        var skills = await _skillService.GetAllAsync();
+        var skills = await _skillService.GetAllAsync(
+            search,
+            category,
+            level,
+            cancellationToken);
 
         return Ok(skills);
     }
 
-    [HttpGet("{id}")]
-    public async Task<ActionResult<SkillResponseDto>> GetSkill(int id)
+    [HttpGet("{id:int:min(1)}")]
+    [ProducesResponseType<SkillResponseDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SkillResponseDto>> GetSkill(
+        int id,
+        CancellationToken cancellationToken)
     {
-        var skill = await _skillService.GetByIdAsync(id);
+        var skill = await _skillService.GetByIdAsync(id, cancellationToken);
 
         if (skill == null)
         {
@@ -37,9 +51,14 @@ public class SkillsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<SkillResponseDto>> CreateSkill(CreateSkillDto dto)
+    [ProducesResponseType<SkillResponseDto>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<SkillResponseDto>> CreateSkill(
+        CreateSkillDto dto,
+        CancellationToken cancellationToken)
     {
-        var createdSkill = await _skillService.CreateAsync(dto);
+        var createdSkill = await _skillService.CreateAsync(dto, cancellationToken);
 
         return CreatedAtAction(
             nameof(GetSkill),
@@ -48,10 +67,17 @@ public class SkillsController : ControllerBase
         );
     }
 
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateSkill(int id, UpdateSkillDto dto)
+    [HttpPut("{id:int:min(1)}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdateSkill(
+        int id,
+        UpdateSkillDto dto,
+        CancellationToken cancellationToken)
     {
-        var updated = await _skillService.UpdateAsync(id, dto);
+        var updated = await _skillService.UpdateAsync(id, dto, cancellationToken);
 
         if (!updated)
         {
@@ -61,10 +87,14 @@ public class SkillsController : ControllerBase
         return NoContent();
     }
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteSkill(int id)
+    [HttpDelete("{id:int:min(1)}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteSkill(
+        int id,
+        CancellationToken cancellationToken)
     {
-        var deleted = await _skillService.DeleteAsync(id);
+        var deleted = await _skillService.DeleteAsync(id, cancellationToken);
 
         if (!deleted)
         {

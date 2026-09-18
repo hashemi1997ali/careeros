@@ -44,6 +44,26 @@ it does not use Auth0 Management API credentials to delete the central identity.
 
 ## Local setup
 
+### Run the full stack
+
+Install the root development runner once, then install/restore both applications:
+
+```powershell
+npm install
+npm run setup
+```
+
+After configuring the environment values described below, start the Next.js
+client and ASP.NET Core API together from the repository root:
+
+```powershell
+npm run dev
+```
+
+The client runs at `http://careeros.localhost:3000` and the API uses
+`http://localhost:4000`. Press `Ctrl+C` once to stop both processes. You can
+also run only one side with `npm run dev:web` or `npm run dev:api`.
+
 ### Server
 
 From `server/`:

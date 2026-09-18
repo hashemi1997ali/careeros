@@ -3,7 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using server.Data;
-using server.Dtos;
+using server.DTOs;
+using server.Exceptions;
 using server.Extensions;
 using server.Services;
 
@@ -24,7 +25,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost("sync")]
-    public async Task<ActionResult<SyncResponse>> Sync(CancellationToken cancellationToken)
+    public async Task<ActionResult<SyncUserResponseDto>> Sync(CancellationToken cancellationToken)
     {
         var token = await HttpContext.GetTokenAsync("access_token");
 
@@ -35,32 +36,21 @@ public class UsersController : ControllerBase
                 statusCode: StatusCodes.Status500InternalServerError);
         }
 
-        UserInfo info;
-        try
-        {
-            info = await _provisioning.FetchUserInfoAsync(token, cancellationToken);
-        }
-        catch (HttpRequestException exception)
-        {
-            return Problem(
-                detail: $"Could not read the profile from the identity provider: {exception.Message}",
-                statusCode: StatusCodes.Status502BadGateway);
-        }
+        var info = await _provisioning.FetchUserInfoAsync(token, cancellationToken);
 
         if (!string.IsNullOrEmpty(HttpContext.User.Sub()) && info.Sub != HttpContext.User.Sub())
         {
-            return Problem(
-                detail: "The subject in the token does not match the subject reported by the provider.",
-                statusCode: StatusCodes.Status502BadGateway);
+            throw new IdentityProviderException(
+                "The token subject did not match the userinfo subject.");
         }
 
         var user = await _provisioning.UpsertAsync(info, cancellationToken);
 
-        return Ok(new SyncResponse(UserDto.From(user)));
+        return Ok(new SyncUserResponseDto(UserResponseDto.From(user)));
     }
 
     [HttpGet("me")]
-    public async Task<ActionResult<UserDto>> Me(CancellationToken cancellationToken)
+    public async Task<ActionResult<UserResponseDto>> Me(CancellationToken cancellationToken)
     {
         var sub = HttpContext.User.Sub();
 
@@ -72,6 +62,24 @@ public class UsersController : ControllerBase
 
         if (user is null) return NotFound(new { error = "user_not_provisioned" });
 
-        return Ok(UserDto.From(user));
+        return Ok(UserResponseDto.From(user));
+    }
+
+    [HttpDelete("me")]
+    public async Task<IActionResult> DeleteMe(CancellationToken cancellationToken)
+    {
+        var sub = HttpContext.User.Sub();
+
+        if (string.IsNullOrEmpty(sub)) return Unauthorized();
+
+        var user = await _context.Users
+            .FirstOrDefaultAsync(item => item.AuthSub == sub, cancellationToken);
+
+        if (user is null) return NotFound(new { error = "user_not_provisioned" });
+
+        _context.Users.Remove(user);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return NoContent();
     }
 }

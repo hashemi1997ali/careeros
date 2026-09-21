@@ -1,52 +1,39 @@
 import type { ReactNode } from 'react'
 
 export type IconName =
-  | 'arrow'
-  | 'bell'
-  | 'briefcase'
-  | 'chart'
-  | 'check'
-  | 'chevron'
-  | 'folder'
-  | 'graph'
-  | 'grid'
-  | 'logout'
-  | 'moon'
-  | 'plus'
-  | 'search'
-  | 'sparkles'
-  | 'sun'
-  | 'target'
-  | 'user'
+  | 'arrow' | 'briefcase' | 'chart' | 'check' | 'chevron' | 'edit' | 'external'
+  | 'folder' | 'graph' | 'grid' | 'logout' | 'monitor' | 'moon' | 'panelClose'
+  | 'panelOpen' | 'plus' | 'search' | 'sparkles' | 'sun' | 'target' | 'trash' | 'eye'
+  | 'settings' | 'user' | 'x'
 
 export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
-  const common = {
-    fill: 'none',
-    stroke: 'currentColor',
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-    strokeWidth: 1.8,
-  }
-
+  const c = { fill: 'none', stroke: 'currentColor', strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, strokeWidth: 1.8 }
   const paths: Record<IconName, ReactNode> = {
-    arrow: <path {...common} d="M5 12h14m-6-6 6 6-6 6" />,
-    bell: <><path {...common} d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" /><path {...common} d="M10 22h4" /></>,
-    briefcase: <><rect {...common} x="3" y="7" width="18" height="13" rx="2" /><path {...common} d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-13 5h18" /></>,
-    chart: <><path {...common} d="M4 19V5m0 14h16" /><path {...common} d="m7 15 4-4 3 2 5-6" /></>,
-    check: <path {...common} d="m5 12 4 4L19 6" />,
-    chevron: <path {...common} d="m8 10 4 4 4-4" />,
-    folder: <path {...common} d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />,
-    graph: <><circle {...common} cx="5" cy="12" r="2" /><circle {...common} cx="19" cy="6" r="2" /><circle {...common} cx="19" cy="18" r="2" /><path {...common} d="m7 11 10-4m-10 6 10 4" /></>,
-    grid: <><rect {...common} x="3" y="3" width="7" height="7" rx="1" /><rect {...common} x="14" y="3" width="7" height="7" rx="1" /><rect {...common} x="3" y="14" width="7" height="7" rx="1" /><rect {...common} x="14" y="14" width="7" height="7" rx="1" /></>,
-    logout: <><path {...common} d="M10 17l5-5-5-5m5 5H3" /><path {...common} d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5" /></>,
-    moon: <path {...common} d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z" />,
-    plus: <path {...common} d="M12 5v14M5 12h14" />,
-    search: <><circle {...common} cx="11" cy="11" r="6" /><path {...common} d="m16 16 4 4" /></>,
-    sparkles: <><path {...common} d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7L12 3Z" /><path {...common} d="m19 16 .7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7L19 16Z" /></>,
-    sun: <><circle {...common} cx="12" cy="12" r="4" /><path {...common} d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></>,
-    target: <><circle {...common} cx="12" cy="12" r="8" /><circle {...common} cx="12" cy="12" r="3" /><path {...common} d="M12 2v2m0 16v2M2 12h2m16 0h2" /></>,
-    user: <><circle {...common} cx="12" cy="8" r="4" /><path {...common} d="M4 21a8 8 0 0 1 16 0" /></>,
+    arrow: <path {...c} d="M5 12h14m-6-6 6 6-6 6" />,
+    briefcase: <><rect {...c} x="3" y="7" width="18" height="13" rx="2" /><path {...c} d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-13 5h18" /></>,
+    chart: <><path {...c} d="M4 19V5m0 14h16" /><path {...c} d="m7 15 4-4 3 2 5-6" /></>,
+    check: <path {...c} d="m5 12 4 4L19 6" />,
+    chevron: <path {...c} d="m8 10 4 4 4-4" />,
+    edit: <><path {...c} d="M12 20h9" /><path {...c} d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" /></>,
+    external: <><path {...c} d="M14 3h7v7" /><path {...c} d="M10 14 21 3" /><path {...c} d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" /></>,
+    eye: <><path {...c} d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" /><circle {...c} cx="12" cy="12" r="2.5" /></>,
+    folder: <path {...c} d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />,
+    graph: <><circle {...c} cx="5" cy="12" r="2" /><circle {...c} cx="19" cy="6" r="2" /><circle {...c} cx="19" cy="18" r="2" /><path {...c} d="m7 11 10-4m-10 6 10 4" /></>,
+    grid: <><rect {...c} x="3" y="3" width="7" height="7" rx="1" /><rect {...c} x="14" y="3" width="7" height="7" rx="1" /><rect {...c} x="3" y="14" width="7" height="7" rx="1" /><rect {...c} x="14" y="14" width="7" height="7" rx="1" /></>,
+    logout: <><path {...c} d="M10 17l5-5-5-5m5 5H3" /><path {...c} d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5" /></>,
+    monitor: <><rect {...c} x="3" y="4" width="18" height="12" rx="2" /><path {...c} d="M8 20h8m-4-4v4" /></>,
+    moon: <path {...c} d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z" />,
+    panelClose: <><rect {...c} x="3" y="3" width="18" height="18" rx="2" /><path {...c} d="M9 3v18M16 8l-4 4 4 4" /></>,
+    panelOpen: <><rect {...c} x="3" y="3" width="18" height="18" rx="2" /><path {...c} d="M9 3v18M12 8l4 4-4 4" /></>,
+    plus: <path {...c} d="M12 5v14M5 12h14" />,
+    search: <><circle {...c} cx="11" cy="11" r="6" /><path {...c} d="m16 16 4 4" /></>,
+    settings: <><circle {...c} cx="12" cy="12" r="3.2" /><path {...c} d="M12 2.5v2.1m0 14.8v2.1M2.5 12h2.1m14.8 0h2.1M5.3 5.3l1.5 1.5m10.4 10.4 1.5 1.5M18.7 5.3l-1.5 1.5M6.8 17.2l-1.5 1.5" /></>,
+    sparkles: <><path {...c} d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7L12 3Z" /><path {...c} d="m19 16 .7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7L19 16Z" /></>,
+    sun: <><circle {...c} cx="12" cy="12" r="4" /><path {...c} d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></>,
+    target: <><circle {...c} cx="12" cy="12" r="8" /><circle {...c} cx="12" cy="12" r="3" /><path {...c} d="M12 2v2m0 16v2M2 12h2m16 0h2" /></>,
+    trash: <><path {...c} d="M3 6h18m-11 5v6m4-6v6M8 6l1-3h6l1 3m3 0-1 15H6L5 6" /></>,
+    user: <><circle {...c} cx="12" cy="8" r="4" /><path {...c} d="M4 21a8 8 0 0 1 16 0" /></>,
+    x: <path {...c} d="m6 6 12 12M18 6 6 18" />,
   }
-
   return <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24">{paths[name]}</svg>
 }

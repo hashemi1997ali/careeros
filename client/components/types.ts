@@ -14,13 +14,28 @@ export type ApplicationStatus =
   | 'Rejected'
   | 'Withdrawn'
 
+export interface JobRequirement {
+  id: number
+  name: string
+  isRequired: boolean
+  weight: number
+}
+
 export interface JobApplication {
   id: number
   company: string
   position: string
+  jobUrl: string | null
+  location: string | null
+  salary: number | null
   status: ApplicationStatus
   appliedAtUtc: string | null
+  interviewAtUtc: string | null
+  notes: string | null
+  jobDescription: string | null
+  createdAtUtc: string
   updatedAtUtc: string
+  requirements: JobRequirement[]
 }
 
 export interface DashboardData {
@@ -33,11 +48,13 @@ export interface DashboardData {
   recentApplications: JobApplication[]
 }
 
+export type SkillLevel = 'Beginner' | 'Intermediate' | 'Advanced'
+
 export interface Skill {
   id: number
   name: string
   category: string
-  level: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert'
+  level: SkillLevel
 }
 
 export interface Project {
@@ -46,6 +63,15 @@ export interface Project {
   description: string
   repositoryUrl: string | null
   liveUrl: string | null
+  createdAtUtc: string
   updatedAtUtc: string
   skills: Skill[]
+}
+
+export interface JobMatch {
+  jobApplicationId: number
+  matchScore: number
+  matchedSkills: string[]
+  missingRequiredSkills: string[]
+  missingOptionalSkills: string[]
 }

@@ -14,5 +14,7 @@ public class Skill
 
     public SkillLevel Level { get; set; }
 
+    public DateOnly? StartDate { get; set; }
+
     public ICollection<ProjectSkill> ProjectSkills { get; set; } = [];
 }

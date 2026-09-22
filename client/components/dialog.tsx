@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, type ReactNode } from 'react'
-import { Icon } from '@/components/icons'
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { ModalCloseButton, ModalShell } from '@/components/modal-shell'
 
 export function Dialog({
   open,
@@ -10,6 +10,7 @@ export function Dialog({
   title,
   description,
   wide = false,
+  footer,
   children,
 }: {
   open: boolean
@@ -18,33 +19,61 @@ export function Dialog({
   title: string
   description?: string
   wide?: boolean
+  footer?: ReactNode
   children: ReactNode
 }) {
+  const titleId = useId()
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [scrollState, setScrollState] = useState({ hasContentAbove: false, hasContentBelow: false })
+
+  const updateScrollState = useCallback(() => {
+    const scroller = scrollRef.current
+    if (!scroller) return
+
+    const remainingScroll = scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop
+    const nextState = {
+      hasContentAbove: scroller.scrollTop > 2,
+      hasContentBelow: remainingScroll > 2,
+    }
+
+    setScrollState(current => current.hasContentAbove === nextState.hasContentAbove && current.hasContentBelow === nextState.hasContentBelow
+      ? current
+      : nextState)
+  }, [])
+
   useEffect(() => {
     if (!open) return
-    const onKeyDown = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
-    document.addEventListener('keydown', onKeyDown)
-    const previous = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.removeEventListener('keydown', onKeyDown)
-      document.body.style.overflow = previous
-    }
-  }, [onClose, open])
 
-  if (!open) return null
+    const scroller = scrollRef.current
+    if (!scroller) return
+
+    const frame = window.requestAnimationFrame(updateScrollState)
+    const observer = new ResizeObserver(updateScrollState)
+    observer.observe(scroller)
+    if (scroller.firstElementChild) observer.observe(scroller.firstElementChild)
+    window.addEventListener('resize', updateScrollState)
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+      observer.disconnect()
+      window.removeEventListener('resize', updateScrollState)
+    }
+  }, [open, updateScrollState])
 
   return (
-    <div className="dialog-backdrop modal-backdrop" data-open="true" onMouseDown={(event) => event.currentTarget === event.target && onClose()}>
-      <section className={wide ? 'dialog dialog-wide modal-surface' : 'dialog modal-surface'} role="dialog" aria-modal="true" aria-labelledby="dialog-title">
-        <button className="dialog-close" type="button" onClick={onClose} aria-label="Close dialog">
-          <Icon name="x" />
-        </button>
-        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        <h2 id="dialog-title">{title}</h2>
-        {description && <p className="dialog-description">{description}</p>}
-        {children}
-      </section>
-    </div>
+    <ModalShell open={open} onClose={onClose} surfaceClassName={wide ? 'dialog dialog-wide' : 'dialog'} labelledBy={titleId}>
+      <header className="dialog-header" data-fade={scrollState.hasContentAbove ? 'true' : 'false'}>
+        <div className="dialog-heading">
+          {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+          <h2 id={titleId}>{title}</h2>
+          {description && <p className="dialog-description">{description}</p>}
+        </div>
+        <ModalCloseButton className="dialog-close" onClose={onClose} />
+      </header>
+      <div className="dialog-scroll" ref={scrollRef} onScroll={updateScrollState}>
+        <div className="dialog-content">{children}</div>
+      </div>
+      {footer && <footer className="dialog-footer" data-fade={scrollState.hasContentBelow ? 'true' : 'false'}>{footer}</footer>}
+    </ModalShell>
   )
 }

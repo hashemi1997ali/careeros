@@ -16,4 +16,6 @@ public class CreateSkillDto
     [Required]
     [EnumDataType(typeof(SkillLevel))]
     public SkillLevel? Level { get; set; }
+
+    public DateOnly? StartDate { get; set; }
 }

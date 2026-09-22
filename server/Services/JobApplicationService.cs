@@ -38,7 +38,7 @@ public class JobApplicationService(
         }
 
         var applications = await query
-            .OrderByDescending(application => application.UpdatedAtUtc)
+            .OrderByDescending(application => application.UpdatedAt)
             .ToListAsync(cancellationToken);
 
         return applications.Select(Map).ToList();
@@ -64,7 +64,7 @@ public class JobApplicationService(
         CancellationToken cancellationToken)
     {
         var userId = await currentUser.GetRequiredUserIdAsync(cancellationToken);
-        ValidateTimeline(dto.AppliedAtUtc, dto.InterviewAtUtc);
+        ValidateTimeline(dto.AppliedAt, dto.InterviewAt);
         var now = DateTime.UtcNow;
 
         var application = new JobApplication
@@ -76,12 +76,12 @@ public class JobApplicationService(
             Location = NormalizeOptional(dto.Location),
             Salary = dto.Salary,
             Status = dto.Status,
-            AppliedAtUtc = dto.AppliedAtUtc,
-            InterviewAtUtc = dto.InterviewAtUtc,
+            AppliedAt = dto.AppliedAt,
+            InterviewAt = dto.InterviewAt,
             Notes = NormalizeOptional(dto.Notes),
             JobDescription = NormalizeOptional(dto.JobDescription),
-            CreatedAtUtc = now,
-            UpdatedAtUtc = now,
+            CreatedAt = now,
+            UpdatedAt = now,
             Requirements = MapRequirements(dto.Requirements)
         };
 
@@ -99,7 +99,7 @@ public class JobApplicationService(
         CancellationToken cancellationToken)
     {
         var userId = await currentUser.GetRequiredUserIdAsync(cancellationToken);
-        ValidateTimeline(dto.AppliedAtUtc, dto.InterviewAtUtc);
+        ValidateTimeline(dto.AppliedAt, dto.InterviewAt);
 
         var application = await context.JobApplications
             .Include(item => item.Requirements)
@@ -118,11 +118,11 @@ public class JobApplicationService(
         application.Location = NormalizeOptional(dto.Location);
         application.Salary = dto.Salary;
         application.Status = dto.Status!.Value;
-        application.AppliedAtUtc = dto.AppliedAtUtc;
-        application.InterviewAtUtc = dto.InterviewAtUtc;
+        application.AppliedAt = dto.AppliedAt;
+        application.InterviewAt = dto.InterviewAt;
         application.Notes = NormalizeOptional(dto.Notes);
         application.JobDescription = NormalizeOptional(dto.JobDescription);
-        application.UpdatedAtUtc = DateTime.UtcNow;
+        application.UpdatedAt = DateTime.UtcNow;
 
         application.Requirements.Clear();
         foreach (var requirement in MapRequirements(dto.Requirements))
@@ -130,7 +130,7 @@ public class JobApplicationService(
             application.Requirements.Add(requirement);
         }
 
-        ApplyStatusDates(application, application.UpdatedAtUtc);
+        ApplyStatusDates(application, application.UpdatedAt);
         await context.SaveChangesAsync(cancellationToken);
         return true;
     }
@@ -151,8 +151,8 @@ public class JobApplicationService(
         }
 
         application.Status = dto.Status!.Value;
-        application.UpdatedAtUtc = DateTime.UtcNow;
-        ApplyStatusDates(application, application.UpdatedAtUtc);
+        application.UpdatedAt = DateTime.UtcNow;
+        ApplyStatusDates(application, application.UpdatedAt);
 
         await context.SaveChangesAsync(cancellationToken);
         return true;
@@ -223,18 +223,17 @@ public class JobApplicationService(
             .Select(item => new JobRequirement
             {
                 Name = item.Name.Trim(),
-                IsRequired = item.IsRequired,
-                Weight = item.Weight
+                IsRequired = item.IsRequired
             })
             .ToList();
     }
 
-    private static void ValidateTimeline(DateTime? appliedAtUtc, DateTime? interviewAtUtc)
+    private static void ValidateTimeline(DateTime? appliedAt, DateTime? interviewAt)
     {
-        if (appliedAtUtc.HasValue && interviewAtUtc.HasValue && interviewAtUtc < appliedAtUtc)
+        if (appliedAt.HasValue && interviewAt.HasValue && interviewAt < appliedAt)
         {
             throw new DomainValidationException(
-                "interviewAtUtc",
+                "interviewAt",
                 "Interview date cannot be earlier than the application date.");
         }
     }
@@ -243,14 +242,14 @@ public class JobApplicationService(
     {
         if (application.Status != JobApplicationStatus.Saved)
         {
-            application.AppliedAtUtc ??= now;
+            application.AppliedAt ??= now;
         }
 
         if (application.Status is
             JobApplicationStatus.HrInterview or
             JobApplicationStatus.TechnicalInterview)
         {
-            application.InterviewAtUtc ??= now;
+            application.InterviewAt ??= now;
         }
     }
 
@@ -266,22 +265,20 @@ public class JobApplicationService(
         Location = application.Location,
         Salary = application.Salary,
         Status = application.Status,
-        AppliedAtUtc = application.AppliedAtUtc,
-        InterviewAtUtc = application.InterviewAtUtc,
+        AppliedAt = application.AppliedAt,
+        InterviewAt = application.InterviewAt,
         Notes = application.Notes,
         JobDescription = application.JobDescription,
-        CreatedAtUtc = application.CreatedAtUtc,
-        UpdatedAtUtc = application.UpdatedAtUtc,
+        CreatedAt = application.CreatedAt,
+        UpdatedAt = application.UpdatedAt,
         Requirements = application.Requirements
             .OrderByDescending(requirement => requirement.IsRequired)
-            .ThenByDescending(requirement => requirement.Weight)
             .ThenBy(requirement => requirement.Name)
             .Select(requirement => new JobRequirementResponseDto
             {
                 Id = requirement.Id,
                 Name = requirement.Name,
-                IsRequired = requirement.IsRequired,
-                Weight = requirement.Weight
+                IsRequired = requirement.IsRequired
             })
             .ToList()
     };

@@ -6,6 +6,11 @@
     "Issuer": "https://YOUR-TENANT.eu.auth0.com",
     "Audience": "https://skillbridge-api"
   },
+  "OpenAI": {
+    "ApiKey": "",
+    "Model": "openai/gpt-oss-120b",
+    "BaseUrl": "https://api.groq.com/openai/v1"
+  },
   "Cors": {
     "AllowedOrigins": [
       "http://localhost:3000",

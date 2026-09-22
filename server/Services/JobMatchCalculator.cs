@@ -19,16 +19,15 @@ internal static class JobMatchCalculator
             .Where(requirement => normalizedSkills.Contains(Normalize(requirement.Name)))
             .ToList();
 
-        var totalWeight = requirementList.Sum(requirement => requirement.Weight);
-        var matchedWeight = matched.Sum(requirement => requirement.Weight);
-        var score = totalWeight == 0
+        var score = requirementList.Count == 0
             ? 0
-            : Math.Round((decimal)matchedWeight / totalWeight * 100, 2);
+            : Math.Round((decimal)matched.Count / requirementList.Count * 100, 2);
 
         return new JobMatchResponseDto
         {
             JobApplicationId = jobApplicationId,
             MatchScore = score,
+            HasRequirements = requirementList.Count > 0,
             MatchedSkills = matched
                 .Select(requirement => requirement.Name)
                 .Order()

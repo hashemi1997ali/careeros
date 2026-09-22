@@ -30,7 +30,7 @@ namespace server.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime?>("AppliedAtUtc")
+                    b.Property<DateTime?>("AppliedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Company")
@@ -38,12 +38,12 @@ namespace server.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
-                    b.Property<DateTime>("CreatedAtUtc")
+                    b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                    b.Property<DateTime?>("InterviewAtUtc")
+                    b.Property<DateTime?>("InterviewAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("JobDescription")
@@ -76,7 +76,7 @@ namespace server.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
-                    b.Property<DateTime>("UpdatedAtUtc")
+                    b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
@@ -110,17 +110,11 @@ namespace server.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<int>("Weight")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id");
 
                     b.HasIndex("JobApplicationId", "Name");
 
-                    b.ToTable("JobRequirements", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_JobRequirements_Weight", "\"Weight\" BETWEEN 1 AND 5");
-                        });
+                    b.ToTable("JobRequirements");
                 });
 
             modelBuilder.Entity("server.Models.Project", b =>
@@ -131,7 +125,7 @@ namespace server.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CreatedAtUtc")
+                    b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
@@ -141,6 +135,9 @@ namespace server.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)");
 
+                    b.Property<DateOnly?>("EndDate")
+                        .HasColumnType("date");
+
                     b.Property<string>("LiveUrl")
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)");
@@ -149,12 +146,15 @@ namespace server.Migrations
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)");
 
+                    b.Property<DateOnly?>("StartDate")
+                        .HasColumnType("date");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
-                    b.Property<DateTime>("UpdatedAtUtc")
+                    b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
@@ -203,6 +203,9 @@ namespace server.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<DateOnly?>("StartDate")
+                        .HasColumnType("date");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");

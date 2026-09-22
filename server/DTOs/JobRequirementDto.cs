@@ -10,6 +10,4 @@ public class JobRequirementDto
 
     public bool IsRequired { get; set; } = true;
 
-    [Range(1, 5)]
-    public int Weight { get; set; } = 1;
 }

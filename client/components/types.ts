@@ -3,6 +3,7 @@ export interface CurrentUser {
   sub: string
   email: string | null
   displayName: string | null
+  pictureUrl: string | null
 }
 
 export type ApplicationStatus =
@@ -18,7 +19,6 @@ export interface JobRequirement {
   id: number
   name: string
   isRequired: boolean
-  weight: number
 }
 
 export interface JobApplication {
@@ -29,12 +29,12 @@ export interface JobApplication {
   location: string | null
   salary: number | null
   status: ApplicationStatus
-  appliedAtUtc: string | null
-  interviewAtUtc: string | null
+  appliedAt: string | null
+  interviewAt: string | null
   notes: string | null
   jobDescription: string | null
-  createdAtUtc: string
-  updatedAtUtc: string
+  createdAt: string
+  updatedAt: string
   requirements: JobRequirement[]
 }
 
@@ -55,6 +55,13 @@ export interface Skill {
   name: string
   category: string
   level: SkillLevel
+  startDate: string | null
+  projects: SkillProject[]
+}
+
+export interface SkillProject {
+  id: number
+  title: string
 }
 
 export interface Project {
@@ -63,15 +70,48 @@ export interface Project {
   description: string
   repositoryUrl: string | null
   liveUrl: string | null
-  createdAtUtc: string
-  updatedAtUtc: string
+  startDate: string | null
+  endDate: string | null
   skills: Skill[]
 }
 
 export interface JobMatch {
   jobApplicationId: number
   matchScore: number
+  hasRequirements: boolean
   matchedSkills: string[]
   missingRequiredSkills: string[]
   missingOptionalSkills: string[]
+}
+
+export interface ExtractedRequirement {
+  name: string
+  isRequired: boolean
+}
+
+export interface ExtractedApplication {
+  company: string | null
+  position: string | null
+  status?: ApplicationStatus | null
+  jobUrl: string | null
+  location: string | null
+  salary: number | null
+  appliedAt: string | null
+  interviewAt: string | null
+  jobDescription: string | null
+  notes: string | null
+  requirements: ExtractedRequirement[]
+}
+
+export interface AiJobAnalysis {
+  isJobPosting: boolean
+  summary: string
+  explanation: string
+  matchScore: number
+  matchedSkills: string[]
+  missingRequiredSkills: string[]
+  missingOptionalSkills: string[]
+  detectedRequirements: ExtractedRequirement[]
+  roadmapSkills: string[]
+  extractedApplication: ExtractedApplication | null
 }

@@ -26,15 +26,16 @@ public class CreateJobApplicationDto
     [EnumDataType(typeof(JobApplicationStatus))]
     public JobApplicationStatus Status { get; set; } = JobApplicationStatus.Saved;
 
-    public DateTime? AppliedAtUtc { get; set; }
+    public DateTime? AppliedAt { get; set; }
 
-    public DateTime? InterviewAtUtc { get; set; }
+    public DateTime? InterviewAt { get; set; }
 
-    [StringLength(4000)]
+    [StringLength(3000)]
     public string? Notes { get; set; }
 
-    [StringLength(30000)]
+    [StringLength(3000)]
     public string? JobDescription { get; set; }
 
+    [MaxLength(50)]
     public List<JobRequirementDto> Requirements { get; set; } = [];
 }

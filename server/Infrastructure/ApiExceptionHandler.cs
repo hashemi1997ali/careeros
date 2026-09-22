@@ -36,6 +36,18 @@ public class ApiExceptionHandler(
                 StatusCodes.Status502BadGateway,
                 "Identity provider unavailable",
                 "The user profile could not be synchronized with the identity provider."),
+            AiProviderException => (
+                StatusCodes.Status502BadGateway,
+                "Analysis unavailable",
+                "Analysis was not successful. Please try again."),
+            AiRateLimitException => (
+                StatusCodes.Status429TooManyRequests,
+                "Analysis unavailable",
+                exception.Message),
+            AiUnavailableException => (
+                StatusCodes.Status503ServiceUnavailable,
+                "AI unavailable",
+                "AI is temporarily unavailable. Please try again later."),
             DbUpdateException => (
                 StatusCodes.Status409Conflict,
                 "Database conflict",
@@ -45,6 +57,14 @@ public class ApiExceptionHandler(
                 "Unexpected server error",
                 "An unexpected error occurred.")
         };
+
+        if (httpContext.Request.Path.StartsWithSegments("/api/ai") &&
+            statusCode >= StatusCodes.Status500InternalServerError &&
+            exception is not AiUnavailableException)
+        {
+            title = "Analysis unavailable";
+            detail = "Analysis was not successful. Please try again.";
+        }
 
         if (statusCode >= StatusCodes.Status500InternalServerError)
         {

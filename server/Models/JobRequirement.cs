@@ -12,5 +12,4 @@ public class JobRequirement
 
     public bool IsRequired { get; set; } = true;
 
-    public int Weight { get; set; } = 1;
 }

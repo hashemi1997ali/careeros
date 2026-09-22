@@ -27,6 +27,8 @@ public class SkillService : ISkillService
         var userId = await _currentUser.GetRequiredUserIdAsync(cancellationToken);
         var query = _context.Skills
             .AsNoTracking()
+            .Include(skill => skill.ProjectSkills)
+            .ThenInclude(projectSkill => projectSkill.Project)
             .Where(skill => skill.UserId == userId);
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -55,7 +57,16 @@ public class SkillService : ISkillService
                 Id = skill.Id,
                 Name = skill.Name,
                 Category = skill.Category,
-                Level = skill.Level
+                Level = skill.Level,
+                StartDate = skill.StartDate,
+                Projects = skill.ProjectSkills
+                    .OrderBy(projectSkill => projectSkill.Project!.Title)
+                    .Select(projectSkill => new SkillProjectDto
+                    {
+                        Id = projectSkill.ProjectId,
+                        Title = projectSkill.Project!.Title
+                    })
+                    .ToList()
             })
             .ToListAsync(cancellationToken);
     }
@@ -72,7 +83,16 @@ public class SkillService : ISkillService
                 Id = skill.Id,
                 Name = skill.Name,
                 Category = skill.Category,
-                Level = skill.Level
+                Level = skill.Level,
+                StartDate = skill.StartDate,
+                Projects = skill.ProjectSkills
+                    .OrderBy(projectSkill => projectSkill.Project!.Title)
+                    .Select(projectSkill => new SkillProjectDto
+                    {
+                        Id = projectSkill.ProjectId,
+                        Title = projectSkill.Project!.Title
+                    })
+                    .ToList()
             })
             .FirstOrDefaultAsync(cancellationToken);
     }
@@ -85,6 +105,8 @@ public class SkillService : ISkillService
         var name = dto.Name.Trim();
         var category = dto.Category.Trim();
 
+        ValidateStartDate(dto.StartDate);
+
         await EnsureUniqueAsync(userId, name, category, null, cancellationToken);
 
         var skill = new Skill
@@ -92,7 +114,8 @@ public class SkillService : ISkillService
             UserId = userId,
             Name = name,
             Category = category,
-            Level = dto.Level!.Value
+            Level = dto.Level!.Value,
+            StartDate = dto.StartDate
         };
 
         _context.Skills.Add(skill);
@@ -104,7 +127,8 @@ public class SkillService : ISkillService
             Id = skill.Id,
             Name = skill.Name,
             Category = skill.Category,
-            Level = skill.Level
+            Level = skill.Level,
+            StartDate = skill.StartDate
         };
     }
 
@@ -131,6 +155,8 @@ public class SkillService : ISkillService
         skill.Name = name;
         skill.Category = category;
         skill.Level = dto.Level!.Value;
+        ValidateStartDate(dto.StartDate);
+        skill.StartDate = dto.StartDate;
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -178,6 +204,14 @@ public class SkillService : ISkillService
         {
             throw new ConflictException(
                 $"A skill named '{name}' already exists in category '{category}'.");
+        }
+    }
+
+    private static void ValidateStartDate(DateOnly? startDate)
+    {
+        if (startDate.HasValue && startDate.Value > DateOnly.FromDateTime(DateTime.UtcNow))
+        {
+            throw new DomainValidationException("startDate", "Skill start date cannot be in the future.");
         }
     }
 }

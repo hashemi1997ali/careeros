@@ -51,8 +51,8 @@ public class AppDbContext : DbContext
             entity.Property(project => project.Description).HasMaxLength(4000).IsRequired();
             entity.Property(project => project.RepositoryUrl).HasMaxLength(2048);
             entity.Property(project => project.LiveUrl).HasMaxLength(2048);
-            entity.Property(project => project.CreatedAtUtc).HasDefaultValueSql("CURRENT_TIMESTAMP");
-            entity.Property(project => project.UpdatedAtUtc).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(project => project.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(project => project.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.HasOne(project => project.User)
                 .WithMany(user => user.Projects)
                 .HasForeignKey(project => project.UserId)
@@ -86,8 +86,8 @@ public class AppDbContext : DbContext
                 .IsRequired();
             entity.Property(application => application.Notes).HasMaxLength(4000);
             entity.Property(application => application.JobDescription).HasMaxLength(30000);
-            entity.Property(application => application.CreatedAtUtc).HasDefaultValueSql("CURRENT_TIMESTAMP");
-            entity.Property(application => application.UpdatedAtUtc).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(application => application.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(application => application.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.HasOne(application => application.User)
                 .WithMany(user => user.JobApplications)
                 .HasForeignKey(application => application.UserId)
@@ -97,11 +97,6 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<JobRequirement>(entity =>
         {
-            entity.ToTable(
-                "JobRequirements",
-                table => table.HasCheckConstraint(
-                    "CK_JobRequirements_Weight",
-                    "\"Weight\" BETWEEN 1 AND 5"));
             entity.Property(requirement => requirement.Name).HasMaxLength(100).IsRequired();
             entity.HasIndex(requirement => new { requirement.JobApplicationId, requirement.Name });
             entity.HasOne(requirement => requirement.JobApplication)

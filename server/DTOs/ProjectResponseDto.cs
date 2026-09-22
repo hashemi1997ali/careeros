@@ -12,9 +12,9 @@ public class ProjectResponseDto
 
     public string? LiveUrl { get; set; }
 
-    public DateTime CreatedAtUtc { get; set; }
+    public DateOnly? StartDate { get; set; }
 
-    public DateTime UpdatedAtUtc { get; set; }
+    public DateOnly? EndDate { get; set; }
 
     public IReadOnlyList<SkillResponseDto> Skills { get; set; } = [];
 }

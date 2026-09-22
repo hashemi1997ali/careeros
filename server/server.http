@@ -39,7 +39,8 @@ Content-Type: application/json
 {
   "name": "ASP.NET Core",
   "category": "Backend",
-  "level": "Intermediate"
+  "level": "Intermediate",
+  "startDate": "2025-08-01"
 }
 
 ###
@@ -57,7 +58,8 @@ Content-Type: application/json
 {
   "name": "ASP.NET Core",
   "category": "Backend",
-  "level": "Advanced"
+  "level": "Advanced",
+  "startDate": "2025-08-01"
 }
 
 ###
@@ -102,10 +104,10 @@ Content-Type: application/json
   "notes": "Applied through the company website.",
   "jobDescription": "ASP.NET Core, PostgreSQL, Docker and Azure are required.",
   "requirements": [
-    { "name": "ASP.NET Core", "isRequired": true, "weight": 5 },
-    { "name": "PostgreSQL", "isRequired": true, "weight": 4 },
-    { "name": "Docker", "isRequired": true, "weight": 3 },
-    { "name": "Azure", "isRequired": false, "weight": 2 }
+    { "name": "ASP.NET Core", "isRequired": true },
+    { "name": "PostgreSQL", "isRequired": true },
+    { "name": "Docker", "isRequired": true },
+    { "name": "Azure", "isRequired": false }
   ]
 }
 

@@ -18,17 +18,17 @@ public class JobApplicationResponseDto
 
     public JobApplicationStatus Status { get; set; }
 
-    public DateTime? AppliedAtUtc { get; set; }
+    public DateTime? AppliedAt { get; set; }
 
-    public DateTime? InterviewAtUtc { get; set; }
+    public DateTime? InterviewAt { get; set; }
 
     public string? Notes { get; set; }
 
     public string? JobDescription { get; set; }
 
-    public DateTime CreatedAtUtc { get; set; }
+    public DateTime CreatedAt { get; set; }
 
-    public DateTime UpdatedAtUtc { get; set; }
+    public DateTime UpdatedAt { get; set; }
 
     public IReadOnlyList<JobRequirementResponseDto> Requirements { get; set; } = [];
 }

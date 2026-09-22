@@ -86,6 +86,7 @@ public class UserProvisioningService
 
     public async Task<User> UpsertAsync(UserInfo info, CancellationToken cancellationToken = default)
     {
+        var pictureUrl = NormalizePictureUrl(info.Picture);
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.AuthSub == info.Sub, cancellationToken);
 
@@ -97,7 +98,14 @@ public class UserProvisioningService
 
         user.Email = info.Email;
         user.DisplayName = info.Name ?? info.Nickname ?? info.Email;
-        user.PictureUrl = info.Picture;
+        if (pictureUrl is not null)
+        {
+            user.PictureUrl = pictureUrl;
+        }
+        else if (IsGeneratedPicture(user.PictureUrl))
+        {
+            user.PictureUrl = null;
+        }
         user.LastLoginAt = DateTimeOffset.UtcNow;
 
         try
@@ -115,7 +123,14 @@ public class UserProvisioningService
 
             existing.Email = info.Email;
             existing.DisplayName = info.Name ?? info.Nickname ?? info.Email;
-            existing.PictureUrl = info.Picture;
+            if (pictureUrl is not null)
+            {
+                existing.PictureUrl = pictureUrl;
+            }
+            else if (IsGeneratedPicture(existing.PictureUrl))
+            {
+                existing.PictureUrl = null;
+            }
             existing.LastLoginAt = DateTimeOffset.UtcNow;
             await _context.SaveChangesAsync(cancellationToken);
 
@@ -124,4 +139,22 @@ public class UserProvisioningService
 
         return user;
     }
+
+    private static string? NormalizePictureUrl(string? pictureUrl)
+    {
+        if (string.IsNullOrWhiteSpace(pictureUrl) || !Uri.TryCreate(pictureUrl, UriKind.Absolute, out var uri))
+        {
+            return null;
+        }
+
+        var isGravatar = uri.Host.Equals("gravatar.com", StringComparison.OrdinalIgnoreCase)
+            || uri.Host.EndsWith(".gravatar.com", StringComparison.OrdinalIgnoreCase);
+        var isAuth0Default = uri.Host.Equals("cdn.auth0.com", StringComparison.OrdinalIgnoreCase)
+            && uri.AbsolutePath.StartsWith("/avatars/", StringComparison.OrdinalIgnoreCase);
+
+        return isGravatar || isAuth0Default ? null : pictureUrl;
+    }
+
+    private static bool IsGeneratedPicture(string? pictureUrl)
+        => !string.IsNullOrWhiteSpace(pictureUrl) && NormalizePictureUrl(pictureUrl) is null;
 }

@@ -6,6 +6,8 @@ public class JobMatchResponseDto
 
     public decimal MatchScore { get; set; }
 
+    public bool HasRequirements { get; set; }
+
     public IReadOnlyList<string> MatchedSkills { get; set; } = [];
 
     public IReadOnlyList<string> MissingRequiredSkills { get; set; } = [];

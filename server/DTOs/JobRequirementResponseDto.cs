@@ -8,5 +8,4 @@ public class JobRequirementResponseDto
 
     public bool IsRequired { get; set; }
 
-    public int Weight { get; set; }
 }

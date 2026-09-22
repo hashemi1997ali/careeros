@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
+using server.Configuration;
 using server.Data;
 using server.Infrastructure;
 using server.Services;
@@ -52,6 +53,15 @@ builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IJobApplicationService, JobApplicationService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.Configure<OpenAiOptions>(builder.Configuration.GetSection("OpenAI"));
+builder.Services.AddHttpClient<IAiService, AiService>();
+builder.Services.AddHttpClient<IJobPageFetcher, JobPageFetcher>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("CareerOS job importer/1.0");
+    client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("en-US,en;q=0.8");
+    client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("text/html"));
+});
 builder.Services.AddHttpContextAccessor();
 
 var allowedOrigins = builder.Configuration

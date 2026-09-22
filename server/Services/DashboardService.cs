@@ -28,7 +28,7 @@ public class DashboardService(
             .AsNoTracking()
             .Include(application => application.Requirements)
             .Where(application => application.UserId == userId)
-            .OrderByDescending(application => application.UpdatedAtUtc)
+            .OrderByDescending(application => application.UpdatedAt)
             .ToListAsync(cancellationToken);
 
         var applicationsByStatus = Enum

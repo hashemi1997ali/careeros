@@ -20,5 +20,9 @@ public class UpdateProjectDto
     [StringLength(2048)]
     public string? LiveUrl { get; set; }
 
+    public DateOnly? StartDate { get; set; }
+
+    public DateOnly? EndDate { get; set; }
+
     public List<int> SkillIds { get; set; } = [];
 }

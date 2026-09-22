@@ -11,6 +11,7 @@ interface SyncedUser {
   authSub: string
   email: string | null
   displayName: string | null
+  pictureUrl: string | null
 }
 
 export async function GET() {
@@ -41,6 +42,7 @@ export async function GET() {
         sub: user.authSub,
         email: user.email ?? session.user.email ?? null,
         displayName: user.displayName ?? session.user.name ?? null,
+        pictureUrl: user.pictureUrl ?? null,
       },
       skillsAppUrl: careerOs().SKILLS_APP_URL ?? null,
     },

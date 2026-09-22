@@ -39,7 +39,7 @@ public class ProjectService(
         }
 
         var projects = await query
-            .OrderByDescending(project => project.UpdatedAtUtc)
+            .OrderByDescending(project => project.UpdatedAt)
             .ToListAsync(cancellationToken);
 
         return projects.Select(Map).ToList();
@@ -66,6 +66,7 @@ public class ProjectService(
         CancellationToken cancellationToken)
     {
         var userId = await currentUser.GetRequiredUserIdAsync(cancellationToken);
+        ValidateDateRange(dto.StartDate, dto.EndDate);
         var skillIds = await GetValidSkillIdsAsync(userId, dto.SkillIds, cancellationToken);
         var now = DateTime.UtcNow;
 
@@ -76,8 +77,10 @@ public class ProjectService(
             Description = dto.Description.Trim(),
             RepositoryUrl = NormalizeOptional(dto.RepositoryUrl),
             LiveUrl = NormalizeOptional(dto.LiveUrl),
-            CreatedAtUtc = now,
-            UpdatedAtUtc = now,
+            StartDate = dto.StartDate,
+            EndDate = dto.EndDate,
+            CreatedAt = now,
+            UpdatedAt = now,
             ProjectSkills = skillIds
                 .Select(skillId => new ProjectSkill { SkillId = skillId })
                 .ToList()
@@ -95,6 +98,7 @@ public class ProjectService(
         CancellationToken cancellationToken)
     {
         var userId = await currentUser.GetRequiredUserIdAsync(cancellationToken);
+        ValidateDateRange(dto.StartDate, dto.EndDate);
         var project = await context.Projects
             .Include(item => item.ProjectSkills)
             .FirstOrDefaultAsync(
@@ -112,7 +116,9 @@ public class ProjectService(
         project.Description = dto.Description.Trim();
         project.RepositoryUrl = NormalizeOptional(dto.RepositoryUrl);
         project.LiveUrl = NormalizeOptional(dto.LiveUrl);
-        project.UpdatedAtUtc = DateTime.UtcNow;
+        project.StartDate = dto.StartDate;
+        project.EndDate = dto.EndDate;
+        project.UpdatedAt = DateTime.UtcNow;
 
         project.ProjectSkills.Clear();
         foreach (var skillId in skillIds)
@@ -255,7 +261,7 @@ public class ProjectService(
         var project = await context.Projects.FindAsync([projectId], cancellationToken);
         if (project is not null)
         {
-            project.UpdatedAtUtc = DateTime.UtcNow;
+            project.UpdatedAt = DateTime.UtcNow;
         }
     }
 
@@ -269,8 +275,8 @@ public class ProjectService(
         Description = project.Description,
         RepositoryUrl = project.RepositoryUrl,
         LiveUrl = project.LiveUrl,
-        CreatedAtUtc = project.CreatedAtUtc,
-        UpdatedAtUtc = project.UpdatedAtUtc,
+        StartDate = project.StartDate,
+        EndDate = project.EndDate,
         Skills = project.ProjectSkills
             .Select(projectSkill => projectSkill.Skill)
             .OrderBy(skill => skill.Name)
@@ -279,8 +285,32 @@ public class ProjectService(
                 Id = skill.Id,
                 Name = skill.Name,
                 Category = skill.Category,
-                Level = skill.Level
+                Level = skill.Level,
+                StartDate = skill.StartDate
             })
             .ToList()
     };
+
+    private static void ValidateDateRange(DateOnly? startDate, DateOnly? endDate)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        if (endDate.HasValue && !startDate.HasValue)
+        {
+            throw new DomainValidationException("endDate", "A project end date requires a start date.");
+        }
+
+        if ((startDate.HasValue && startDate.Value > today) ||
+            (endDate.HasValue && endDate.Value > today))
+        {
+            throw new DomainValidationException("dateRange", "Project dates cannot be in the future.");
+        }
+
+        if (startDate.HasValue && endDate.HasValue && endDate.Value < startDate.Value)
+        {
+            throw new DomainValidationException(
+                "dateRange",
+                "The project end date cannot be earlier than its start date.");
+        }
+    }
 }

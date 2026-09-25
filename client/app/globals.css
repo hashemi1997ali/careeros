@@ -587,3 +587,14 @@ html,body,button,input,textarea,select{font-family:var(--font-inter),sans-serif}
     padding-bottom:calc(88px + env(safe-area-inset-bottom));
   }
 }
+
+.feature-strip article {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.feature-strip article:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow);
+  z-index: 1;
+  position: relative;
+}

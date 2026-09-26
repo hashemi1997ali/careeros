@@ -1,8 +1,6 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import './globals.css'
-
-const inter = Inter({ variable: '--font-inter', subsets: ['latin'], display: 'swap' })
+import './talent-graph.css'
 
 export const metadata: Metadata = {
   title: { default: 'CareerOS | Career workspace', template: '%s | CareerOS' },
@@ -28,7 +26,7 @@ const themeScript = `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} h-full antialiased`}>
+    <html lang="en" suppressHydrationWarning className="h-full antialiased">
       <head><script dangerouslySetInnerHTML={{ __html: themeScript }} /></head>
       <body className="min-h-full">{children}</body>
     </html>

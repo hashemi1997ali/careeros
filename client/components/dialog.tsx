@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useState, type ReactNode } from 'react'
 import { ModalCloseButton, ModalShell } from '@/components/modal-shell'
 
 export function Dialog({
@@ -23,11 +23,11 @@ export function Dialog({
   children: ReactNode
 }) {
   const titleId = useId()
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null)
   const [scrollState, setScrollState] = useState({ hasContentAbove: false, hasContentBelow: false })
 
   const updateScrollState = useCallback(() => {
-    const scroller = scrollRef.current
+    const scroller = scrollElement
     if (!scroller) return
 
     const remainingScroll = scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop
@@ -39,12 +39,12 @@ export function Dialog({
     setScrollState(current => current.hasContentAbove === nextState.hasContentAbove && current.hasContentBelow === nextState.hasContentBelow
       ? current
       : nextState)
-  }, [])
+  }, [scrollElement])
 
   useEffect(() => {
     if (!open) return
 
-    const scroller = scrollRef.current
+    const scroller = scrollElement
     if (!scroller) return
 
     const frame = window.requestAnimationFrame(updateScrollState)
@@ -58,7 +58,7 @@ export function Dialog({
       observer.disconnect()
       window.removeEventListener('resize', updateScrollState)
     }
-  }, [open, updateScrollState])
+  }, [open, scrollElement, updateScrollState])
 
   return (
     <ModalShell open={open} onClose={onClose} surfaceClassName={wide ? 'dialog dialog-wide' : 'dialog'} labelledBy={titleId}>
@@ -70,7 +70,7 @@ export function Dialog({
         </div>
         <ModalCloseButton className="dialog-close" onClose={onClose} />
       </header>
-      <div className="dialog-scroll" ref={scrollRef} onScroll={updateScrollState}>
+      <div className="dialog-scroll" ref={setScrollElement} onScroll={updateScrollState}>
         <div className="dialog-content">{children}</div>
       </div>
       {footer && <footer className="dialog-footer" data-fade={scrollState.hasContentBelow ? 'true' : 'false'}>{footer}</footer>}

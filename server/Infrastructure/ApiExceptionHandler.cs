@@ -14,6 +14,8 @@ public class ApiExceptionHandler(
         Exception exception,
         CancellationToken cancellationToken)
     {
+        var isApplicationExtraction = httpContext.Request.Path.StartsWithSegments("/api/ai/application-extract");
+        var aiOperation = isApplicationExtraction ? "Application extraction" : "Analysis";
         var (statusCode, title, detail) = exception switch
         {
             ResourceNotFoundException => (
@@ -38,12 +40,12 @@ public class ApiExceptionHandler(
                 "The user profile could not be synchronized with the identity provider."),
             AiProviderException => (
                 StatusCodes.Status502BadGateway,
-                "Analysis unavailable",
-                "Analysis was not successful. Please try again."),
+                $"{aiOperation} unavailable",
+                $"{aiOperation} was not successful. Please try again."),
             AiRateLimitException => (
                 StatusCodes.Status429TooManyRequests,
-                "Analysis unavailable",
-                exception.Message),
+                $"{aiOperation} unavailable",
+                $"{aiOperation} was not successful. Please try again."),
             AiUnavailableException => (
                 StatusCodes.Status503ServiceUnavailable,
                 "AI unavailable",
@@ -62,8 +64,8 @@ public class ApiExceptionHandler(
             statusCode >= StatusCodes.Status500InternalServerError &&
             exception is not AiUnavailableException)
         {
-            title = "Analysis unavailable";
-            detail = "Analysis was not successful. Please try again.";
+            title = $"{aiOperation} unavailable";
+            detail = $"{aiOperation} was not successful. Please try again.";
         }
 
         if (statusCode >= StatusCodes.Status500InternalServerError)

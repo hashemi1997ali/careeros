@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
 
     public DbSet<User> Users => Set<User>();
     public DbSet<Skill> Skills => Set<Skill>();
+    public DbSet<UserSkill> UserSkills => Set<UserSkill>();
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<ProjectSkill> ProjectSkills => Set<ProjectSkill>();
     public DbSet<JobApplication> JobApplications => Set<JobApplication>();
@@ -34,6 +35,13 @@ public class AppDbContext : DbContext
         {
             entity.Property(skill => skill.Name).IsRequired();
             entity.Property(skill => skill.Category).IsRequired();
+            entity.Property(skill => skill.Slug).HasMaxLength(120).IsRequired();
+            entity.Property(skill => skill.CategorySlug).HasMaxLength(60).IsRequired();
+            entity.HasIndex(skill => new { skill.Slug, skill.CategorySlug }).IsUnique();
+        });
+
+        modelBuilder.Entity<UserSkill>(entity =>
+        {
             entity.Property(skill => skill.Level)
                 .HasConversion<string>()
                 .IsRequired();
@@ -41,8 +49,13 @@ public class AppDbContext : DbContext
                 .WithMany(user => user.Skills)
                 .HasForeignKey(skill => skill.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
-            entity.HasIndex(skill => new { skill.UserId, skill.Name, skill.Category })
+            entity.HasOne(skill => skill.Skill)
+                .WithMany(skill => skill.UserSkills)
+                .HasForeignKey(skill => skill.SkillId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(skill => new { skill.UserId, skill.SkillId })
                 .IsUnique();
+            entity.HasIndex(skill => skill.SkillId);
         });
 
         modelBuilder.Entity<Project>(entity =>
@@ -62,14 +75,14 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<ProjectSkill>(entity =>
         {
-            entity.HasKey(projectSkill => new { projectSkill.ProjectId, projectSkill.SkillId });
+            entity.HasKey(projectSkill => new { projectSkill.ProjectId, projectSkill.UserSkillId });
             entity.HasOne(projectSkill => projectSkill.Project)
                 .WithMany(project => project.ProjectSkills)
                 .HasForeignKey(projectSkill => projectSkill.ProjectId)
                 .OnDelete(DeleteBehavior.Cascade);
-            entity.HasOne(projectSkill => projectSkill.Skill)
+            entity.HasOne(projectSkill => projectSkill.UserSkill)
                 .WithMany(skill => skill.ProjectSkills)
-                .HasForeignKey(projectSkill => projectSkill.SkillId)
+                .HasForeignKey(projectSkill => projectSkill.UserSkillId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

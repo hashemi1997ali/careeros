@@ -1,20 +1,73 @@
-import type { Project, Skill } from '@/components/types'
+'use client'
 
-export function SkillGraph({ skills, projects }: { skills: Skill[]; projects: Project[] }) {
-  const visibleProjects = projects.slice(0, 3)
-  const visibleSkills = skills.slice(0, 5)
-  if (!visibleProjects.length && !visibleSkills.length) return <div className="graph-empty"><span className="graph-center-static">CareerOS</span><p>Add skills and projects to build your evidence map.</p></div>
+import { useEffect, useMemo, useRef } from 'react'
+import type { Skill } from '@/components/types'
+import { byProficiency } from '@/lib/skill-graph-model'
 
-  const projectPositions = visibleProjects.map((project,index) => ({ project, x: 108, y: 66 + index * 76 }))
-  const skillPositions = visibleSkills.map((skill,index) => ({ skill, x: 412, y: 38 + index * 52 }))
+const center = 180
+const orbitRadius = 125
 
-  return <div className="skill-graph-wrap"><svg className="skill-graph" viewBox="0 0 520 300" role="img" aria-label="Projects connected to skills">
-    <defs><linearGradient id="career-node" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#61e1c0"/><stop offset="1" stopColor="#2fbf98"/></linearGradient></defs>
-    {projectPositions.map(({project,x,y}) => <line key={`c-${project.id}`} x1="260" y1="150" x2={x+45} y2={y} className="graph-line graph-line-primary"/>)}
-    {projectPositions.flatMap(({project,x,y}) => project.skills.map(ps => { const target = skillPositions.find(({skill}) => skill.id === ps.id); return target ? <line key={`${project.id}-${ps.id}`} x1={x+88} y1={y} x2={target.x-54} y2={target.y} className="graph-line"/> : null }).filter(Boolean))}
-    {!visibleProjects.length && skillPositions.map(({skill,x,y}) => <line key={`s-${skill.id}`} x1="260" y1="150" x2={x-50} y2={y} className="graph-line"/>)}
-    <circle cx="260" cy="150" r="50" fill="url(#career-node)" className="graph-center"/><text x="260" y="146" textAnchor="middle" className="graph-center-title">CareerOS</text><text x="260" y="164" textAnchor="middle" className="graph-center-subtitle">evidence</text>
-    {projectPositions.map(({project,x,y}) => <g key={project.id}><rect x={x-45} y={y-18} width="90" height="36" rx="18" className="graph-project-node"/><text x={x} y={y+4} textAnchor="middle" className="graph-node-label">{project.title.length > 14 ? `${project.title.slice(0,12)}…` : project.title}</text></g>)}
-    {skillPositions.map(({skill,x,y}) => <g key={skill.id}><rect x={x-54} y={y-17} width="108" height="34" rx="17" className="graph-skill-node"/><text x={x} y={y+4} textAnchor="middle" className="graph-node-label">{skill.name.length > 16 ? `${skill.name.slice(0,14)}…` : skill.name}</text></g>)}
-  </svg><div className="graph-legend" aria-hidden="true"><span><i className="project-dot"/>Projects</span><span><i className="skill-dot"/>Skills</span></div></div>
+function BrainMark({ x = center, y = 173, size = 34 }: { x?: number; y?: number; size?: number }) {
+  return <image className="talent-brain-mark" href="/images/icons/brain-2023630.png" x={x - size / 2} y={y - size / 2} width={size} height={size} preserveAspectRatio="xMidYMid meet" aria-hidden="true"/>
+}
+
+export function SkillGraph({ skills, showLevels = true, showCenterLabel = true, showCaption = true }: { skills: Skill[]; showLevels?: boolean; showCenterLabel?: boolean; showCaption?: boolean }) {
+  const visible = useMemo(() => [...skills].sort(byProficiency).slice(0, 6), [skills])
+  const svg = useRef<SVGSVGElement>(null)
+  const pointer = useRef({ x: 0, y: 0 })
+  const positions = useMemo(() => visible.map((skill, index) => {
+    const angle = -Math.PI / 2 + index * Math.PI * 2 / Math.max(visible.length, 1)
+    return { skill, x: center + Math.cos(angle) * orbitRadius, y: center + Math.sin(angle) * orbitRadius }
+  }), [visible])
+
+  useEffect(() => {
+    const element = svg.current
+    if (!element) return
+    const groups = element.querySelectorAll<SVGGElement>('[data-talent-node]')
+    const lines = element.querySelectorAll<SVGLineElement>('[data-talent-line]')
+    const media = matchMedia('(prefers-reduced-motion: reduce)')
+    let frame = 0, inView = true, last = 0, elapsed = 0
+    const current = { x: 0, y: 0 }
+    const render = (time: number) => {
+      const delta = Math.min(time - (last || time), 40); last = time
+      const animate = !media.matches
+      if (animate) elapsed += delta
+      const ease = 1 - Math.exp(-delta / 140)
+      current.x += ((animate ? pointer.current.x : 0) - current.x) * ease
+      current.y += ((animate ? pointer.current.y : 0) - current.y) * ease
+      positions.forEach((node, index) => {
+        const x = node.x + (animate ? Math.sin(elapsed / 1650 + index * 1.9) * 2.5 + current.x * (4 + index * .7) : 0)
+        const y = node.y + (animate ? Math.cos(elapsed / 1900 + index * 1.3) * 3 + current.y * (4 + index * .7) : 0)
+        groups[index]?.setAttribute('transform', `translate(${x} ${y})`)
+        lines[index]?.setAttribute('x2', String(x)); lines[index]?.setAttribute('y2', String(y))
+      })
+      if (animate && inView && !document.hidden) frame = requestAnimationFrame(render)
+    }
+    const restart = () => { cancelAnimationFrame(frame); last = 0; frame = requestAnimationFrame(render) }
+    const observer = new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; restart() })
+    observer.observe(element)
+    media.addEventListener('change', restart); document.addEventListener('visibilitychange', restart)
+    restart()
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); media.removeEventListener('change', restart); document.removeEventListener('visibilitychange', restart) }
+  }, [positions])
+
+  return <div className="talent-preview">
+    {showCaption && <div className="talent-preview-top"><span>Top {visible.length} skills · highest level first</span></div>}
+    <svg ref={svg} className="talent-preview-scene" viewBox="0 0 360 360" role="img" aria-label="Skills surrounded by your six strongest skills, ordered clockwise from advanced to beginner" onPointerMove={event => { const rect = event.currentTarget.getBoundingClientRect(); pointer.current = { x: (event.clientX - rect.left) / rect.width * 2 - 1, y: (event.clientY - rect.top) / rect.height * 2 - 1 } }} onPointerLeave={() => { pointer.current = { x: 0, y: 0 } }}>
+      <circle cx={center} cy={center} r={orbitRadius} className="talent-orbit"/>
+      <circle cx={center} cy={center} r="92" className="talent-orbit talent-orbit-inner"/>
+      {positions.map(({ skill, x, y }) => <line data-talent-line key={skill.id} x1={center} y1={center} x2={x} y2={y} className={`talent-spoke talent-${skill.level}`}/>)}
+      <circle cx={center} cy={center} r="48" className="talent-core-halo"/><circle cx={center} cy={center} r="38" className="talent-core"/>
+      <BrainMark y={showCenterLabel ? 173 : center} size={showCenterLabel ? 34 : 42} />
+      {showCenterLabel && <text x={center} y="200" textAnchor="middle" className="talent-core-label">Skills</text>}
+      {positions.map(({ skill, x, y }, index) => <g data-talent-node key={skill.id} transform={`translate(${x} ${y})`} className={`talent-node talent-${skill.level}`}>
+        <title>{index + 1}. {skill.name} · {skill.level}</title>
+        <rect x="-51" y="-23" width="102" height="46" rx="13"/>
+        <circle cx="0" cy="-23" r="3"/>
+        <text x="0" y={showLevels ? -2 : 0} dominantBaseline={showLevels ? undefined : 'central'} textAnchor="middle" className="talent-skill-name" fontSize={showLevels ? undefined : 18}>{skill.name.length > (showLevels ? 14 : 10) ? `${skill.name.slice(0, showLevels ? 12 : 8)}…` : skill.name}</text>
+        {showLevels && <text x="0" y="14" textAnchor="middle" className="talent-skill-level">{skill.level}</text>}
+      </g>)}
+    </svg>
+    {!skills.length && <p className="talent-preview-empty">Add a skill to start your talent map.</p>}
+  </div>
 }

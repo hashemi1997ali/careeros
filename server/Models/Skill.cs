@@ -4,17 +4,13 @@ public class Skill
 {
     public int Id { get; set; }
 
-    public Guid UserId { get; set; }
-
-    public User? User { get; set; }
-
     public string Name { get; set; } = string.Empty;
 
     public string Category { get; set; } = string.Empty;
 
-    public SkillLevel Level { get; set; }
+    public string Slug { get; set; } = string.Empty;
 
-    public DateOnly? StartDate { get; set; }
+    public string CategorySlug { get; set; } = string.Empty;
 
-    public ICollection<ProjectSkill> ProjectSkills { get; set; } = [];
+    public ICollection<UserSkill> UserSkills { get; set; } = [];
 }

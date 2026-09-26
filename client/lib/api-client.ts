@@ -53,12 +53,16 @@ export async function apiFetch<T>(
   if (!response.ok) {
     const message = (await responseMessage(response)) ?? `Request failed (${response.status}).`
     const isAiRequest = typeof input === 'string' && input.includes('/api/ai/')
+    const isApplicationExtraction = typeof input === 'string' && input.includes('/api/ai/application-extract')
+    const operationTitle = isApplicationExtraction ? 'Application extraction unavailable' : 'Analysis unavailable'
     const title = isAiRequest && response.status === 503
       ? 'AI unavailable'
+      : isApplicationExtraction && response.status >= 400
+        ? operationTitle
       : isAiRequest && response.status >= 500
-        ? 'Analysis unavailable'
+        ? operationTitle
       : response.status === 429
-      ? 'Analysis unavailable'
+      ? isApplicationExtraction ? operationTitle : 'Analysis unavailable'
       : response.status === 502
       ? 'Service unavailable'
       : response.status === 401

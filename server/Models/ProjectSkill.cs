@@ -6,7 +6,7 @@ public class ProjectSkill
 
     public Project Project { get; set; } = null!;
 
-    public int SkillId { get; set; }
+    public int UserSkillId { get; set; }
 
-    public Skill Skill { get; set; } = null!;
+    public UserSkill UserSkill { get; set; } = null!;
 }

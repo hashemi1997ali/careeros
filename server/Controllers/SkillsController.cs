@@ -18,6 +18,20 @@ public class SkillsController : ControllerBase
         _skillService = skillService;
     }
 
+    [HttpGet("suggestions")]
+    [ProducesResponseType<IReadOnlyList<SkillSuggestionDto>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<SkillSuggestionDto>>> GetSuggestions(
+        [FromQuery] string search,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(search) || search.Trim().Length < 2)
+        {
+            return Ok(Array.Empty<SkillSuggestionDto>());
+        }
+
+        return Ok(await _skillService.GetSuggestionsAsync(search, cancellationToken));
+    }
+
     [HttpGet]
     [ProducesResponseType<IReadOnlyList<SkillResponseDto>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<SkillResponseDto>>> GetSkills(

@@ -25,41 +25,43 @@ public class SkillService : ISkillService
         CancellationToken cancellationToken)
     {
         var userId = await _currentUser.GetRequiredUserIdAsync(cancellationToken);
-        var query = _context.Skills
+        var query = _context.UserSkills
             .AsNoTracking()
-            .Include(skill => skill.ProjectSkills)
+            .Include(userSkill => userSkill.Skill)
+            .Include(userSkill => userSkill.ProjectSkills)
             .ThenInclude(projectSkill => projectSkill.Project)
-            .Where(skill => skill.UserId == userId);
+            .Where(userSkill => userSkill.UserId == userId);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
             var pattern = $"%{search.Trim()}%";
-            query = query.Where(skill =>
-                EF.Functions.ILike(skill.Name, pattern) ||
-                EF.Functions.ILike(skill.Category, pattern));
+            query = query.Where(userSkill =>
+                EF.Functions.ILike(userSkill.Skill.Name, pattern) ||
+                EF.Functions.ILike(userSkill.Skill.Category, pattern));
         }
 
         if (!string.IsNullOrWhiteSpace(category))
         {
-            var normalizedCategory = category.Trim().ToLower();
-            query = query.Where(skill => skill.Category.ToLower() == normalizedCategory);
+            var categorySlug = SkillNameNormalizer.ToSlug(SkillNameNormalizer.CanonicalizeCategory(category));
+            query = query.Where(userSkill => userSkill.Skill.CategorySlug == categorySlug);
         }
 
         if (level.HasValue)
         {
-            query = query.Where(skill => skill.Level == level.Value);
+            query = query.Where(userSkill => userSkill.Level == level.Value);
         }
 
         return await query
-            .OrderBy(skill => skill.Name)
-            .Select(skill => new SkillResponseDto
+            .OrderBy(userSkill => userSkill.Skill.Name)
+            .ThenBy(userSkill => userSkill.Skill.Category)
+            .Select(userSkill => new SkillResponseDto
             {
-                Id = skill.Id,
-                Name = skill.Name,
-                Category = skill.Category,
-                Level = skill.Level,
-                StartDate = skill.StartDate,
-                Projects = skill.ProjectSkills
+                Id = userSkill.Id,
+                Name = userSkill.Skill.Name,
+                Category = userSkill.Skill.Category,
+                Level = userSkill.Level,
+                StartDate = userSkill.StartDate,
+                Projects = userSkill.ProjectSkills
                     .OrderBy(projectSkill => projectSkill.Project!.Title)
                     .Select(projectSkill => new SkillProjectDto
                     {
@@ -71,21 +73,45 @@ public class SkillService : ISkillService
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<SkillResponseDto?> GetByIdAsync(int id, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<SkillSuggestionDto>> GetSuggestionsAsync(
+        string search,
+        CancellationToken cancellationToken)
     {
-        var userId = await _currentUser.GetRequiredUserIdAsync(cancellationToken);
+        var canonical = SkillNameNormalizer.CanonicalizeName(search);
+        var slug = SkillNameNormalizer.ToSlug(canonical);
+        var pattern = $"%{search.Trim()}%";
 
         return await _context.Skills
             .AsNoTracking()
-            .Where(skill => skill.Id == id && skill.UserId == userId)
-            .Select(skill => new SkillResponseDto
+            .Where(skill => skill.Slug.Contains(slug) ||
+                            EF.Functions.ILike(skill.Name, pattern) ||
+                            EF.Functions.ILike(skill.Category, pattern))
+            .OrderBy(skill => skill.Name)
+            .ThenBy(skill => skill.Category)
+            .Take(12)
+            .Select(skill => new SkillSuggestionDto
             {
                 Id = skill.Id,
                 Name = skill.Name,
-                Category = skill.Category,
-                Level = skill.Level,
-                StartDate = skill.StartDate,
-                Projects = skill.ProjectSkills
+                Category = skill.Category
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<SkillResponseDto?> GetByIdAsync(int id, CancellationToken cancellationToken)
+    {
+        var userId = await _currentUser.GetRequiredUserIdAsync(cancellationToken);
+        return await _context.UserSkills
+            .AsNoTracking()
+            .Where(userSkill => userSkill.Id == id && userSkill.UserId == userId)
+            .Select(userSkill => new SkillResponseDto
+            {
+                Id = userSkill.Id,
+                Name = userSkill.Skill.Name,
+                Category = userSkill.Skill.Category,
+                Level = userSkill.Level,
+                StartDate = userSkill.StartDate,
+                Projects = userSkill.ProjectSkills
                     .OrderBy(projectSkill => projectSkill.Project!.Title)
                     .Select(projectSkill => new SkillProjectDto
                     {
@@ -97,113 +123,117 @@ public class SkillService : ISkillService
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    public async Task<SkillResponseDto> CreateAsync(
-        CreateSkillDto dto,
-        CancellationToken cancellationToken)
+    public async Task<SkillResponseDto> CreateAsync(CreateSkillDto dto, CancellationToken cancellationToken)
     {
         var userId = await _currentUser.GetRequiredUserIdAsync(cancellationToken);
-        var name = dto.Name.Trim();
-        var category = dto.Category.Trim();
-
         ValidateStartDate(dto.StartDate);
+        var skill = await FindOrCreateCatalogSkillAsync(dto.Name, dto.Category, cancellationToken);
+        await EnsureUniqueAsync(userId, skill.Id, null, cancellationToken);
 
-        await EnsureUniqueAsync(userId, name, category, null, cancellationToken);
-
-        var skill = new Skill
+        var userSkill = new UserSkill
         {
             UserId = userId,
-            Name = name,
-            Category = category,
+            Skill = skill,
+            SkillId = skill.Id,
             Level = dto.Level!.Value,
             StartDate = dto.StartDate
         };
-
-        _context.Skills.Add(skill);
-
+        _context.UserSkills.Add(userSkill);
         await _context.SaveChangesAsync(cancellationToken);
 
         return new SkillResponseDto
         {
-            Id = skill.Id,
+            Id = userSkill.Id,
             Name = skill.Name,
             Category = skill.Category,
-            Level = skill.Level,
-            StartDate = skill.StartDate
+            Level = userSkill.Level,
+            StartDate = userSkill.StartDate
         };
     }
 
-    public async Task<bool> UpdateAsync(
-        int id,
-        UpdateSkillDto dto,
-        CancellationToken cancellationToken)
+    public async Task<bool> UpdateAsync(int id, UpdateSkillDto dto, CancellationToken cancellationToken)
     {
         var userId = await _currentUser.GetRequiredUserIdAsync(cancellationToken);
-        var skill = await _context.Skills.FirstOrDefaultAsync(
+        var userSkill = await _context.UserSkills.FirstOrDefaultAsync(
             item => item.Id == id && item.UserId == userId,
             cancellationToken);
-
-        if (skill == null)
+        if (userSkill is null)
         {
             return false;
         }
 
-        var name = dto.Name.Trim();
-        var category = dto.Category.Trim();
-
-        await EnsureUniqueAsync(userId, name, category, id, cancellationToken);
-
-        skill.Name = name;
-        skill.Category = category;
-        skill.Level = dto.Level!.Value;
         ValidateStartDate(dto.StartDate);
-        skill.StartDate = dto.StartDate;
+        var skill = await FindOrCreateCatalogSkillAsync(dto.Name, dto.Category, cancellationToken);
+        await EnsureUniqueAsync(userId, skill.Id, id, cancellationToken);
 
+        userSkill.Skill = skill;
+        userSkill.SkillId = skill.Id;
+        userSkill.Level = dto.Level!.Value;
+        userSkill.StartDate = dto.StartDate;
         await _context.SaveChangesAsync(cancellationToken);
-
         return true;
     }
 
     public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken)
     {
         var userId = await _currentUser.GetRequiredUserIdAsync(cancellationToken);
-        var skill = await _context.Skills.FirstOrDefaultAsync(
+        var userSkill = await _context.UserSkills.FirstOrDefaultAsync(
             item => item.Id == id && item.UserId == userId,
             cancellationToken);
-
-        if (skill == null)
+        if (userSkill is null)
         {
             return false;
         }
 
-        _context.Skills.Remove(skill);
-
+        _context.UserSkills.Remove(userSkill);
         await _context.SaveChangesAsync(cancellationToken);
-
         return true;
+    }
+
+    private async Task<Skill> FindOrCreateCatalogSkillAsync(
+        string rawName,
+        string rawCategory,
+        CancellationToken cancellationToken)
+    {
+        var name = SkillNameNormalizer.CanonicalizeName(rawName);
+        var category = SkillNameNormalizer.CanonicalizeCategory(rawCategory);
+        var slug = SkillNameNormalizer.ToSlug(name);
+        var categorySlug = SkillNameNormalizer.ToSlug(category);
+        var skill = await _context.Skills.FirstOrDefaultAsync(
+            item => item.Slug == slug && item.CategorySlug == categorySlug,
+            cancellationToken);
+        if (skill is not null)
+        {
+            return skill;
+        }
+
+        await _context.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO "Skills" ("Name", "Category", "Slug", "CategorySlug")
+            VALUES ({name}, {category}, {slug}, {categorySlug})
+            ON CONFLICT ("Slug", "CategorySlug") DO NOTHING;
+            """, cancellationToken);
+
+        return await _context.Skills.FirstAsync(
+            item => item.Slug == slug && item.CategorySlug == categorySlug,
+            cancellationToken);
     }
 
     private async Task EnsureUniqueAsync(
         Guid userId,
-        string name,
-        string category,
+        int skillId,
         int? excludedId,
         CancellationToken cancellationToken)
     {
-        var normalizedName = name.ToLower();
-        var normalizedCategory = category.ToLower();
-
-        var exists = await _context.Skills.AnyAsync(
-            skill =>
-                skill.UserId == userId &&
-                (!excludedId.HasValue || skill.Id != excludedId.Value) &&
-                skill.Name.ToLower() == normalizedName &&
-                skill.Category.ToLower() == normalizedCategory,
+        var exists = await _context.UserSkills.AnyAsync(
+            userSkill => userSkill.UserId == userId &&
+                         userSkill.SkillId == skillId &&
+                         (!excludedId.HasValue || userSkill.Id != excludedId.Value),
             cancellationToken);
-
         if (exists)
         {
+            var skill = await _context.Skills.FindAsync([skillId], cancellationToken);
             throw new ConflictException(
-                $"A skill named '{name}' already exists in category '{category}'.");
+                $"A skill named '{skill?.Name}' already exists in category '{skill?.Category}'.");
         }
     }
 

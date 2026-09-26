@@ -192,10 +192,10 @@ public class JobApplicationService(
             throw new ResourceNotFoundException("Job application", id);
         }
 
-        var skillNames = await context.Skills
+        var skillNames = await context.UserSkills
             .AsNoTracking()
             .Where(skill => skill.UserId == userId)
-            .Select(skill => skill.Name)
+            .Select(skill => skill.Skill.Name)
             .ToListAsync(cancellationToken);
 
         return JobMatchCalculator.Calculate(id, application.Requirements, skillNames);

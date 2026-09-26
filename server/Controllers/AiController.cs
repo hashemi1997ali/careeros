@@ -13,6 +13,7 @@ namespace server.Controllers;
 public sealed class AiController(
     IAiService aiService,
     ISkillService skillService,
+    IProjectService projectService,
     IJobApplicationService jobApplicationService,
     IJobPageFetcher jobPageFetcher) : ControllerBase
 {
@@ -45,6 +46,20 @@ public sealed class AiController(
         }
 
         var application = await aiService.ExtractApplicationAsync(sourceText, cancellationToken);
+        if (application.JobUrl is null)
+        {
+            application.JobUrl = fetched?.Url ?? urlCandidate;
+        }
+
+        if (!HasExtractedApplicationData(application))
+        {
+            return BadRequest(new
+            {
+                error = "application_extraction_unavailable",
+                message = "No meaningful job application information was found in the provided text."
+            });
+        }
+
         return Ok(new AiApplicationExtractionResponseDto { Application = application });
     }
 
@@ -110,9 +125,16 @@ public sealed class AiController(
         }
 
         var skills = await skillService.GetAllAsync(null, null, null, cancellationToken);
+        var projects = await projectService.GetAllAsync(null, null, cancellationToken);
+        var analysis = await aiService.AnalyzeJobAsync(sourceText, skills, projects, application, cancellationToken);
+        if (analysis.ExtractedApplication is not null && analysis.ExtractedApplication.JobUrl is null)
+        {
+            analysis.ExtractedApplication.JobUrl = fetched?.Url ?? urlCandidate;
+        }
+
         return Ok(new
         {
-            analysis = await aiService.AnalyzeJobAsync(sourceText, skills, application, cancellationToken),
+            analysis,
             applicationId = request.ApplicationId
         });
     }
@@ -167,4 +189,10 @@ public sealed class AiController(
         var withoutUrls = Regex.Replace(value, "https?://[^\\s<>\"']+", " ", RegexOptions.IgnoreCase);
         return Regex.Replace(withoutUrls, @"\s+", " ").Trim().Length >= 30;
     }
+
+    private static bool HasExtractedApplicationData(ExtractedApplicationDto application) =>
+        !string.IsNullOrWhiteSpace(application.Company) ||
+        !string.IsNullOrWhiteSpace(application.Position) ||
+        !string.IsNullOrWhiteSpace(application.JobDescription) ||
+        application.Requirements.Count > 0;
 }

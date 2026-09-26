@@ -3,6 +3,10 @@ import Link from "next/link";
 import { auth0 } from "@/lib/auth0";
 import { Brand } from "@/components/brand";
 import { Icon, type IconName } from "@/components/icons";
+import AntigravityBackground from "@/components/AntigravityBackground";
+import GlareHover from "@/components/GlareHover";
+import Magnet from "@/components/Magnet";
+import ShinyText from "@/components/ShinyText";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +41,7 @@ export default async function LandingPage() {
 
   return (
     <main className="landing-page">
+      <AntigravityBackground />
       <header className="public-header">
         <div className="public-header-shell">
           <Brand />
@@ -77,7 +82,7 @@ export default async function LandingPage() {
           </span>
           <h1>
             Turn your skills and experience into real{" "}
-            <span>opportunities.</span>
+            <ShinyText text="opportunities." color="#2a73ef" shineColor="#ffffff" speed={2.5} spread={120} />
           </h1>
           <p>
             Track your skills, showcase projects, manage job applications and
@@ -111,6 +116,7 @@ export default async function LandingPage() {
           </ul>
         </div>
         <div className="hero-visual">
+          <GlareHover width="100%" height="100%" background="transparent" borderRadius="0px" borderColor="transparent" glareColor="#ffffff" glareOpacity={0.35} glareAngle={-30} glareSize={300} transitionDuration={800} className="landing-image-glare">
           <Image
             className="theme-image theme-image-light"
             src="/images/careeros/mountain-day.png"
@@ -138,12 +144,14 @@ export default async function LandingPage() {
               <small>Skills · Projects · Applications · Gaps</small>
             </div>
           </div>
+          </GlareHover>
         </div>
       </section>
 
       <section className="feature-strip" id="features">
         {features.map((feature) => (
-          <article key={feature.title}>
+          <Magnet key={feature.title} padding={60} magnetStrength={6} wrapperClassName="landing-feature-magnet">
+          <article>
             <span className="soft-icon">
               <Icon name={feature.icon} />
             </span>
@@ -152,11 +160,13 @@ export default async function LandingPage() {
               <p>{feature.text}</p>
             </div>
           </article>
+          </Magnet>
         ))}
       </section>
 
       <section className="landing-story" id="how-it-works">
         <div className="story-visual">
+          <GlareHover width="100%" height="100%" background="transparent" borderRadius="0px" borderColor="transparent" glareColor="#ffffff" glareOpacity={0.35} glareAngle={-30} glareSize={300} transitionDuration={800} className="landing-image-glare">
           <Image
             className="theme-image theme-image-light"
             src="/images/careeros/journey-day.png"
@@ -173,6 +183,7 @@ export default async function LandingPage() {
             alt="Career journey illustration at night"
             unoptimized
           />
+          </GlareHover>
         </div>
         <div className="story-copy" id="about">
           <p className="eyebrow">ONE WORKSPACE, A CLEARER PATH</p>

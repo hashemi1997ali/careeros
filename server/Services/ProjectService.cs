@@ -20,7 +20,8 @@ public class ProjectService(
         var query = context.Projects
             .AsNoTracking()
             .Include(project => project.ProjectSkills)
-            .ThenInclude(projectSkill => projectSkill.Skill)
+            .ThenInclude(projectSkill => projectSkill.UserSkill)
+            .ThenInclude(userSkill => userSkill.Skill)
             .Where(project => project.UserId == userId)
             .AsQueryable();
 
@@ -35,7 +36,7 @@ public class ProjectService(
         if (skillId.HasValue)
         {
             query = query.Where(project =>
-                project.ProjectSkills.Any(projectSkill => projectSkill.SkillId == skillId.Value));
+                project.ProjectSkills.Any(projectSkill => projectSkill.UserSkillId == skillId.Value));
         }
 
         var projects = await query
@@ -53,7 +54,8 @@ public class ProjectService(
         var project = await context.Projects
             .AsNoTracking()
             .Include(item => item.ProjectSkills)
-            .ThenInclude(projectSkill => projectSkill.Skill)
+            .ThenInclude(projectSkill => projectSkill.UserSkill)
+            .ThenInclude(userSkill => userSkill.Skill)
             .FirstOrDefaultAsync(
                 item => item.Id == id && item.UserId == userId,
                 cancellationToken);
@@ -82,7 +84,7 @@ public class ProjectService(
             CreatedAt = now,
             UpdatedAt = now,
             ProjectSkills = skillIds
-                .Select(skillId => new ProjectSkill { SkillId = skillId })
+                .Select(skillId => new ProjectSkill { UserSkillId = skillId })
                 .ToList()
         };
 
@@ -126,7 +128,7 @@ public class ProjectService(
             project.ProjectSkills.Add(new ProjectSkill
             {
                 ProjectId = project.Id,
-                SkillId = skillId
+                UserSkillId = skillId
             });
         }
 
@@ -165,7 +167,7 @@ public class ProjectService(
             throw new ResourceNotFoundException("Project", projectId);
         }
 
-        if (!await context.Skills.AnyAsync(
+        if (!await context.UserSkills.AnyAsync(
                 skill => skill.Id == skillId && skill.UserId == userId,
                 cancellationToken))
         {
@@ -173,7 +175,7 @@ public class ProjectService(
         }
 
         var exists = await context.ProjectSkills.AnyAsync(
-            projectSkill => projectSkill.ProjectId == projectId && projectSkill.SkillId == skillId,
+            projectSkill => projectSkill.ProjectId == projectId && projectSkill.UserSkillId == skillId,
             cancellationToken);
 
         if (exists)
@@ -184,7 +186,7 @@ public class ProjectService(
         context.ProjectSkills.Add(new ProjectSkill
         {
             ProjectId = projectId,
-            SkillId = skillId
+            UserSkillId = skillId
         });
 
         await TouchProjectAsync(projectId, cancellationToken);
@@ -208,12 +210,12 @@ public class ProjectService(
         }
 
         var link = await context.ProjectSkills
-            .Include(projectSkill => projectSkill.Skill)
+            .Include(projectSkill => projectSkill.UserSkill)
             .FirstOrDefaultAsync(
                 projectSkill =>
                     projectSkill.ProjectId == projectId &&
-                    projectSkill.SkillId == skillId &&
-                    projectSkill.Skill.UserId == userId,
+                    projectSkill.UserSkillId == skillId &&
+                    projectSkill.UserSkill.UserId == userId,
                 cancellationToken);
 
         if (link is null)
@@ -240,7 +242,7 @@ public class ProjectService(
             throw new DomainValidationException("skillIds", "Skill ids must be positive integers.");
         }
 
-        var existingIds = await context.Skills
+        var existingIds = await context.UserSkills
             .Where(skill => skill.UserId == userId && skillIds.Contains(skill.Id))
             .Select(skill => skill.Id)
             .ToListAsync(cancellationToken);
@@ -278,13 +280,13 @@ public class ProjectService(
         StartDate = project.StartDate,
         EndDate = project.EndDate,
         Skills = project.ProjectSkills
-            .Select(projectSkill => projectSkill.Skill)
-            .OrderBy(skill => skill.Name)
+            .Select(projectSkill => projectSkill.UserSkill)
+            .OrderBy(userSkill => userSkill.Skill.Name)
             .Select(skill => new SkillResponseDto
             {
                 Id = skill.Id,
-                Name = skill.Name,
-                Category = skill.Category,
+                Name = skill.Skill.Name,
+                Category = skill.Skill.Category,
                 Level = skill.Level,
                 StartDate = skill.StartDate
             })

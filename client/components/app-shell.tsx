@@ -14,9 +14,9 @@ type ThemePreference = 'light' | 'dark' | 'system'
 const navigation: Array<{ label: string; href: string; icon: IconName }> = [
   { label: 'Dashboard', href: '/dashboard', icon: 'grid' },
   { label: 'Applications', href: '/applications', icon: 'briefcase' },
-  { label: 'Skills', href: '/skills', icon: 'sparkles' },
+  { label: 'Skills', href: '/skills', icon: 'brain' },
   { label: 'Projects', href: '/projects', icon: 'folder' },
-  { label: 'Job analyzer', href: '/job-analyzer', icon: 'target' },
+  { label: 'Job analyzer', href: '/job-analyzer', icon: 'sparkles' },
 ]
 const UserContext = createContext<CurrentUser | null>(null)
 const SkillsAppUrlContext = createContext<string | null>(null)
@@ -52,7 +52,7 @@ export function AppShell({ children, user, skillsAppUrl }: { children: ReactNode
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
       const isSearchShortcut = (event.metaKey || event.ctrlKey) && (event.key.toLowerCase() === 'k' || event.code === 'KeyK')
-      if (!isSearchShortcut || event.isComposing) return
+      if (!isSearchShortcut || event.isComposing || document.querySelector('.modal-layer[data-open="true"]')) return
       event.preventDefault()
       setSearchOpen(true)
     }
@@ -84,7 +84,7 @@ export function AppShell({ children, user, skillsAppUrl }: { children: ReactNode
           {!collapsed && <button className="sidebar-toggle sidebar-control" type="button" onClick={toggleSidebar} aria-controls="sidebar-navigation" aria-expanded={true} aria-label="Collapse sidebar" title="Collapse sidebar"><Icon name="panelClose"/></button>}
         </div>
         <nav className="sidebar-nav" id="sidebar-navigation">{navigation.map(item => { const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(`${item.href}/`)); return <Link className={active ? 'nav-link is-active' : 'nav-link'} aria-current={active ? 'page' : undefined} aria-label={collapsed ? item.label : undefined} href={item.href} key={item.href} title={collapsed ? item.label : undefined}><Icon name={item.icon}/><span>{item.label}</span></Link> })}
-          {skillsAppUrl && <a className="nav-link sidebar-external" href={skillsAppUrl} target="_blank" rel="noreferrer" aria-label="SkillForge (opens in a new tab)" title={collapsed ? 'SkillForge' : undefined}><Icon name="graph"/><span>SkillForge</span><span className="sidebar-external-action sidebar-control" aria-hidden="true"><Icon name="external"/></span></a>}
+          {skillsAppUrl && <a className="nav-link sidebar-external" href={skillsAppUrl} target="_blank" rel="noreferrer" aria-label="SkillForge (opens in a new tab)" title={collapsed ? 'SkillForge' : undefined}><Icon name="skillforge"/><span>SkillForge</span><span className="sidebar-external-action sidebar-control" aria-hidden="true"><Icon name="external"/></span></a>}
         </nav>
         <div className="sidebar-footer">
           <div className="sidebar-visual" aria-hidden="true"><span className="sidebar-visual-icon"><Icon name="sparkles" size={22}/></span><p>A better career<br/>is a series of<br/>small steps.</p></div>
@@ -102,8 +102,8 @@ export function AppShell({ children, user, skillsAppUrl }: { children: ReactNode
             </button>
           </div>
         </header>
-        <nav className="mobile-nav" aria-label="Primary navigation">{navigation.map(item => <Link className={pathname === item.href ? 'is-active' : ''} href={item.href} key={item.href}><Icon name={item.icon}/><span>{item.label}</span></Link>)}</nav>
-        <main id="main-content" className="app-main">{children}</main>
+        <nav className="mobile-nav" aria-label="Primary navigation">{navigation.map(item => <Link className={`${pathname === item.href || pathname.startsWith(`${item.href}/`) ? 'is-active ' : ''}${item.href === '/job-analyzer' ? 'mobile-nav-analyzer' : ''}`} aria-current={pathname === item.href || pathname.startsWith(`${item.href}/`) ? 'page' : undefined} href={item.href} key={item.href}><Icon name={item.icon}/><span>{item.label}</span></Link>)}</nav>
+        <main id="main-content" className="app-main"><div key={pathname} className="page-enter">{children}</div></main>
       </div>
     </div>
     <ModalShell open={profileOpen} onClose={() => setProfileOpen(false)} layerClassName="profile-modal-layer" surfaceClassName="profile-modal" ariaLabel="Account menu">

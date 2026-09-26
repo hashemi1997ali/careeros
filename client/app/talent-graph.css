@@ -1,0 +1,53 @@
+﻿/* Talent maps: shared visual language for the dashboard and the 3D explorer. */
+.talent-preview{position:relative;display:flex;flex-direction:column;min-width:0;width:100%;flex:1}
+.talent-preview-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;color:var(--muted);font-size:11px;line-height:1.5}
+.talent-motion-toggle{display:inline-grid;place-items:center;flex:0 0 40px;width:40px;height:40px;border:1px solid var(--line);border-radius:12px;color:var(--muted);background:var(--surface);font-size:17px;transition:background .18s ease,color .18s ease}
+.talent-motion-toggle:hover{color:var(--blue);background:var(--blue-soft)}
+.talent-preview-scene{display:block;width:100%;height:auto;max-height:420px;aspect-ratio:1;flex:none;overflow:visible}
+.talent-orbit{fill:none;stroke:var(--line);stroke-width:1;stroke-dasharray:3 7}.talent-orbit-inner{opacity:.6;stroke-dasharray:none}
+.talent-Advanced{--talent-level:var(--teal)}.talent-Intermediate{--talent-level:var(--blue)}.talent-Beginner{--talent-level:var(--amber)}
+.talent-spoke{stroke:var(--talent-level);stroke-width:1;opacity:.4}
+.talent-core-halo{fill:color-mix(in srgb,var(--teal) 10%,transparent);stroke:color-mix(in srgb,var(--teal) 22%,transparent);stroke-width:1}
+.talent-core{fill:var(--teal);stroke:color-mix(in srgb,var(--teal) 60%,white);stroke-width:1.5;filter:drop-shadow(0 5px 12px color-mix(in srgb,var(--teal) 22%,transparent))}
+.talent-core-label{fill:#063e35;font-size:12px;font-weight:600}.talent-brain-mark{opacity:.76;filter:drop-shadow(0 2px 3px rgba(6,62,53,.16))}
+.talent-node rect{fill:var(--surface);stroke:color-mix(in srgb,var(--talent-level) 28%,var(--line));stroke-width:1;filter:drop-shadow(0 3px 5px color-mix(in srgb,var(--ink) 5%,transparent));transition:stroke .2s ease}
+.talent-node:hover rect{stroke:var(--talent-level)}.talent-node circle{fill:var(--talent-level)}
+.talent-skill-name{fill:var(--ink);font-size:11px;font-weight:600}.talent-skill-level{fill:var(--muted);font-size:10px}
+.talent-preview-empty{margin:-38px 0 20px;position:relative;color:var(--muted);font-size:12px;text-align:center}
+.talent-page-actions{display:flex;gap:10px;flex-wrap:wrap}
+.talent-graph-link{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.talent-explorer{overflow:hidden;min-width:0;border:1px solid var(--line);border-radius:22px;background:var(--surface);box-shadow:var(--shadow)}
+.talent-explorer-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:18px;padding:18px 22px;border-bottom:1px solid var(--line)}
+.talent-scene-meta{display:flex;align-items:center;flex-wrap:wrap;gap:10px;font-size:13px}.talent-scene-meta>span:last-child{color:var(--muted);font-size:12px}.talent-scene-meta strong{font-weight:600}
+.talent-live-dot{width:8px;height:8px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 5px color-mix(in srgb,var(--teal) 10%,transparent)}
+.talent-explorer-grid{display:grid;grid-template-columns:minmax(0,1fr) 310px;min-width:0}
+.talent-stage{position:relative;min-width:0;display:flex;flex-direction:column;background:radial-gradient(ellipse at 50% 47%,color-mix(in srgb,var(--teal) 7%,transparent),transparent 55%),radial-gradient(ellipse at 10% 15%,color-mix(in srgb,var(--blue) 5%,transparent),transparent 60%),var(--surface-soft)}
+.talent-stage-caption{position:absolute;top:24px;left:24px;right:24px;pointer-events:none;z-index:1;display:grid;gap:3px}.talent-stage-caption .eyebrow{margin:0;font-size:10px}.talent-stage-caption>span:last-child{color:var(--muted);font-size:12px}
+.talent-canvas{display:block;width:100%;height:600px;min-width:0;touch-action:none;cursor:grab;outline:0}
+.talent-canvas:focus-visible{outline:3px solid color-mix(in srgb,var(--blue) 42%,transparent);outline-offset:-5px;border-radius:8px}
+.talent-stage-footer{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;padding:0 24px 16px;margin-top:auto}
+.talent-stage-footer p{margin:0;color:var(--ink);font-size:12px;line-height:1.7}.talent-stage-footer p>span{font-size:11px;color:var(--muted)}
+.talent-zoom{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:12px}.talent-zoom input{width:100px;min-height:44px;accent-color:var(--teal);cursor:pointer}.talent-zoom output{min-width:38px;text-align:right;font-variant-numeric:tabular-nums}
+.talent-edge-key{display:flex;gap:14px;flex-wrap:wrap;padding:14px 24px;border-top:1px solid var(--line);color:var(--muted);font-size:11px}.talent-edge-key span{display:flex;align-items:center;gap:6px}.talent-edge-key i{width:18px;border-top:1px solid var(--teal)}.talent-edge-key span:nth-child(2) i{border-color:var(--violet)}
+.talent-inspector{min-width:0;display:flex;flex-direction:column;gap:14px;padding:22px;border-left:1px solid var(--line);background:var(--surface)}
+.talent-inspector-heading{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}.talent-inspector-heading h2{margin:0;font-size:16px;font-weight:650}.talent-inspector-heading a{display:flex;align-items:center;gap:4px;font-size:12px}
+.talent-inspector .inline-search{min-width:0;width:100%;margin:0}.talent-inspector .inline-search input{min-width:0;width:100%;font-size:13px}
+.talent-inspector-summary{color:var(--muted);font-size:11px}
+.talent-skill-list{display:flex;flex-direction:column;gap:6px;max-height:320px;min-height:100px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line) transparent;padding:2px}
+.talent-skill-list>button{display:flex;align-items:center;gap:8px;width:100%;min-height:64px;flex-shrink:0;padding:10px 8px;border:1px solid transparent;border-radius:11px;color:var(--ink);background:var(--surface-soft);text-align:left;transition:background .18s ease,border-color .18s ease}
+.talent-skill-list>button:hover,.talent-skill-list>button[aria-pressed="true"]{border-color:color-mix(in srgb,var(--category-color) 55%,var(--line));background:color-mix(in srgb,var(--category-color) 8%,var(--surface))}
+.talent-skill-list>button>i{display:block;width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:var(--category-color)}
+.talent-skill-list>button>span:nth-child(2){min-width:0;flex:1}.talent-skill-list strong,.talent-skill-list small{display:block;overflow-wrap:anywhere}.talent-skill-list strong{font-size:12px;font-weight:600}.talent-skill-list small{margin-top:3px;color:var(--muted);font-size:11px}.talent-skill-list .level-pill{padding:4px 6px;min-height:24px;font-size:10px}
+.talent-selected{padding:16px;margin-top:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface-soft);overflow-wrap:anywhere}
+.talent-selected>div{display:flex;align-items:center;justify-content:space-between;gap:8px}.talent-selected .eyebrow{margin:0;font-size:10px}.talent-selected .talent-motion-toggle{width:32px;height:32px;flex-basis:32px}.talent-selected>svg{color:var(--teal)}
+.talent-selected h3{margin:8px 0;font-size:15px;font-weight:600}.talent-selected p{margin:6px 0;color:var(--muted);font-size:12px;line-height:1.65}.talent-selected>span{display:inline-block;margin-top:8px;color:var(--blue);font-size:12px;font-weight:500}
+.talent-motion-note{margin:0;padding:0 22px 18px;color:var(--muted);font-size:12px}.talent-no-results{display:grid;justify-items:start;gap:12px;padding:16px 8px;font-size:13px}.talent-no-results button{border:0;background:transparent;min-height:44px;padding:0}
+.talent-canvas-fallback{position:absolute;top:40%;left:24px;right:24px;padding:20px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--muted);font-size:14px;text-align:center}
+.talent-loading{min-height:560px}
+@media(min-width:1024px) and (max-width:1250px){.talent-explorer-grid{grid-template-columns:minmax(0,1fr)}.talent-inspector{border-left:0;border-top:1px solid var(--line)}.talent-skill-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.talent-canvas{height:520px}}
+@media(max-width:900px){.talent-explorer-grid{grid-template-columns:minmax(0,1fr)}.talent-inspector{border-left:0;border-top:1px solid var(--line)}.talent-skill-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.talent-canvas{height:520px}}
+@media(max-width:520px){.talent-explorer{border-radius:16px}.talent-explorer-bar{padding:16px}.talent-scene-meta{gap:10px}.talent-scene-meta>span:last-child{width:100%;padding-left:18px}.talent-canvas{height:420px}.talent-stage-caption{top:18px;left:16px;right:16px}.talent-stage-footer,.talent-edge-key{padding-left:16px;padding-right:16px}.talent-stage-footer{gap:8px}.talent-stage-footer p>span{display:none}.talent-inspector{padding:16px}.talent-inspector .inline-search input{font-size:16px}.talent-skill-list{display:flex;max-height:300px}.talent-skill-list .level-pill{font-size:11px}.talent-page-actions{width:100%}.talent-page-actions .button{flex:1}.talent-motion-toggle{min-width:44px;min-height:44px}}
+
+/* The profile card is folded into a single, larger dashboard graph. */
+.dashboard-grid>.graph-panel{grid-column:span 6}
+@media(max-width:1399px){.dashboard-grid>.graph-panel{grid-column:span 12}}

@@ -64,6 +64,12 @@ export interface SkillProject {
   title: string
 }
 
+export interface SkillSuggestion {
+  id: number
+  name: string
+  category: string
+}
+
 export interface Project {
   id: number
   title: string

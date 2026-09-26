@@ -13,16 +13,16 @@ public class DashboardService(
     public async Task<DashboardResponseDto> GetAsync(CancellationToken cancellationToken)
     {
         var userId = await currentUser.GetRequiredUserIdAsync(cancellationToken);
-        var totalSkills = await context.Skills.CountAsync(
+        var totalSkills = await context.UserSkills.CountAsync(
             skill => skill.UserId == userId,
             cancellationToken);
         var totalProjects = await context.Projects.CountAsync(
             project => project.UserId == userId,
             cancellationToken);
-        var skillNames = await context.Skills
+        var skillNames = await context.UserSkills
             .AsNoTracking()
             .Where(skill => skill.UserId == userId)
-            .Select(skill => skill.Name)
+            .Select(skill => skill.Skill.Name)
             .ToListAsync(cancellationToken);
         var applications = await context.JobApplications
             .AsNoTracking()

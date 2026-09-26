@@ -11,6 +11,7 @@ public interface IAiService
     Task<AiJobAnalysisResponseDto> AnalyzeJobAsync(
         string jobText,
         IReadOnlyList<SkillResponseDto> skills,
+        IReadOnlyList<ProjectResponseDto> projects,
         JobApplicationResponseDto? application,
         CancellationToken cancellationToken);
 }

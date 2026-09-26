@@ -11,6 +11,10 @@ public interface ISkillService
         SkillLevel? level,
         CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<SkillSuggestionDto>> GetSuggestionsAsync(
+        string search,
+        CancellationToken cancellationToken);
+
     Task<SkillResponseDto?> GetByIdAsync(int id, CancellationToken cancellationToken);
 
     Task<SkillResponseDto> CreateAsync(CreateSkillDto dto, CancellationToken cancellationToken);

@@ -1347,3 +1347,20 @@ button,select,input,textarea{font-weight:400}
 .hero-copy h1,.story-copy h2{font-weight:650}.landing-hero{animation:page-appear .3s var(--ease-out)}
 @media(max-width:520px){.public-header-shell{gap:8px;justify-content:space-between}.public-header .brand{max-width:140px}.hero-actions>.button{width:100%}.hero-preview-card{left:16px;right:16px;padding:14px}.hero-preview-card>div{min-width:0}.hero-preview-card strong{font-size:14px}.landing-footer{gap:12px}.landing-footer p{margin:0;font-size:14px}}
 @media(prefers-reduced-motion:reduce){.landing-hero{animation:none}}
+
+/* Landing page effects from landing-page-styling. */
+.landing-page{position:relative;isolation:isolate;overflow:visible}
+.landing-page>.pointer-events-none{z-index:0}
+.landing-page>section,.landing-page>footer{position:relative;z-index:1}
+.public-header{position:sticky;top:0;z-index:50}
+.public-header-shell{background:color-mix(in srgb,var(--surface) 72%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.landing-image-glare{position:absolute!important;inset:0}
+.hero-preview-card{z-index:3}
+.landing-feature-magnet{min-width:0;height:100%;border-right:1px solid var(--line)}
+.landing-feature-magnet:last-child{border-right:0}
+.landing-feature-magnet>div{height:100%}
+.landing-feature-magnet article{height:100%;border-right:0;transition:transform .25s ease,box-shadow .25s ease}
+.landing-feature-magnet article:hover{transform:translateY(-4px);box-shadow:var(--shadow);position:relative;z-index:1}
+@media(max-width:1100px){.landing-feature-magnet:nth-child(2){border-right:0}}
+@media(max-width:760px){.landing-feature-magnet{border-right:0}.landing-feature-magnet:last-child article{border-bottom:0}}
+@media(prefers-reduced-motion:reduce){.landing-feature-magnet article{transition:none}.landing-feature-magnet article:hover{transform:none}}

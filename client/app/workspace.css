@@ -1,0 +1,238 @@
+/* The workspace inherits the landing's Manrope, neutral ink and alpine imagery.
+   Scoped rules also cover ModalShell's body portal without changing the landing. */
+.app-shell, .modal-layer { --muted: #666; --subtle: #707070; }
+:root[data-theme="dark"] .app-shell,
+:root[data-theme="dark"] .modal-layer { --muted: #b0b0ac; --subtle: #a1a19d; }
+.app-shell { isolation: isolate; transition: grid-template-columns .28s ease, --sidebar-width .28s ease; }
+.app-shell .content-shell { position: relative; isolation: isolate; }
+.workspace-landscape {
+  position: fixed; z-index: -1; inset: 0; pointer-events: none; overflow: hidden;
+  background: var(--canvas);
+}
+.workspace-landscape::before {
+  content: ""; position: absolute; inset: 22% 0 0;
+  background: url('/images/landing/alpine-hero.webp') 68% bottom / cover no-repeat;
+  filter: grayscale(1); opacity: .32;
+  mask-image: linear-gradient(transparent, #000 64%);
+}
+.workspace-mist {
+  position: absolute; inset: 40% -12% -15%;
+  background: radial-gradient(ellipse at 25% 70%, var(--canvas) 4%, transparent 58%),
+    radial-gradient(ellipse at 75% 80%, var(--canvas) 10%, transparent 65%);
+  animation: workspace-mist-drift 28s ease-in-out infinite alternate;
+}
+@keyframes workspace-mist-drift { to { transform: translate3d(6%, -3%, 0); opacity: .6; } }
+:root[data-theme="dark"] .workspace-landscape::before {
+  background-image: url('/images/careeros/mountain-night.png'); opacity: .2;
+}
+.app-shell .app-main { position: relative; padding-bottom: 64px; }
+.app-shell .topbar {
+  height: 60px; margin: 16px auto 0; min-height: 60px; padding: 6px 10px 6px 23px; gap: 22px;
+  border: 1px solid color-mix(in srgb, var(--line) 78%, transparent); border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  box-shadow: 0 10px 32px rgb(20 32 28 / .09); backdrop-filter: blur(22px);
+}
+.app-shell .global-search-trigger { width: 320px; min-width: 0; max-width: 320px; flex: 0 1 320px; border: 0; background: transparent; }
+.app-shell .global-search-trigger:hover { box-shadow: none; background: color-mix(in srgb, var(--ink) 5%, transparent); }
+.app-shell .mobile-brand { display: none; }
+.app-shell .page-heading { margin: 10px 0 28px; gap: 20px; align-items: center; }
+.app-shell .page-heading h1 { font-size: clamp(28px, 3vw, 40px); line-height: 1.2; letter-spacing: -.04em; font-weight: 600; }
+.app-shell .page-heading p:not(.eyebrow) { margin-top: 10px; color: var(--muted); font-size: 13px; line-height: 1.65; }
+.app-shell .page-heading .eyebrow, .modal-layer .dialog-heading .eyebrow { display: none; }
+.app-shell .button { border-radius: 8px; min-height: 42px; font-size: 12px; }
+.app-shell .panel, .app-shell .metric-card, .app-shell .compact-metrics article,
+.app-shell .skill-card, .app-shell .project-card {
+  border: 1px solid var(--line); border-radius: 14px;
+  background: var(--surface); box-shadow: none;
+}
+.app-shell .dashboard-grid { gap: 18px; }
+.app-shell .dashboard-grid > .panel { padding: 22px; }
+.app-shell .dashboard-summary { gap: 18px; }
+.app-shell .dashboard-summary > .metric-card { padding: 22px; }
+.app-shell .dashboard-summary > .metric-card .metric-main strong { font-size: 38px; font-weight: 600; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.app-shell .metric-main p { color: var(--muted); font-size: 12px; }
+.app-shell .dashboard-summary > .metric-card > small { max-width: none; text-align: left; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); }
+.app-shell .soft-icon { background: transparent; box-shadow: none; border-radius: 0; color: var(--muted); }
+.app-shell .panel-title h2 { font-size: 15px; font-weight: 600; letter-spacing: -.025em; }
+.app-shell .panel-heading { gap: 14px; }
+.app-shell .panel-heading .text-link { font-size: 11px; white-space: nowrap; }
+.app-shell .dashboard-reminder { border: 0; border-radius: 14px; box-shadow: none; }
+.app-shell .dashboard-reminder strong { font-weight: 500; letter-spacing: -.025em; line-height: 1.45; }
+.app-shell .dashboard-reminder small { font-size: 9px; letter-spacing: .12em; }
+.app-shell .pipeline-stage strong { font-weight: 500; font-variant-numeric: tabular-nums; }
+.app-shell .pipeline-stage span { color: var(--muted); }
+.app-shell .gap-row > div { background: var(--surface-soft); height: 5px; }
+.app-shell .gap-row > div > i { background: var(--ink); }
+.app-shell .data-table th { background: var(--surface-soft); color: var(--muted); font-size: 10px; font-weight: 600; }
+.app-shell .data-table td { padding-top: 18px; padding-bottom: 18px; font-size: 12px; border-color: var(--line); }
+.app-shell .data-table tbody tr:hover { background: var(--surface-soft); }
+.app-shell .compact-metrics { gap: 14px; }
+.app-shell .compact-metrics article { padding: 20px; }
+.app-shell .compact-metrics strong { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* One native selector for each filter, at every viewport size. */
+.app-shell .collection-toolbar { border: 0; padding: 0; background: transparent; box-shadow: none; margin-bottom: 22px; }
+.app-shell .collection-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.app-shell .inline-search { flex: 1 1 220px; min-width: 0; max-width: none; min-height: 46px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.app-shell .inline-search input { min-width: 0; width: 100%; color: var(--ink); }
+.app-shell .collection-filter, .app-shell .collection-sort {
+  display: flex; gap: 12px; align-items: center; min-height: 46px; padding: 0 12px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: 11px; color: var(--muted);
+}
+.app-shell .collection-filter select, .app-shell .collection-sort select {
+  width: auto; min-width: 110px; max-width: 240px; min-height: 44px; padding: 0 20px 0 0;
+  border: 0; border-radius: 0; background-color: transparent; color: var(--ink); font-size: 12px; box-shadow: none;
+}
+.app-shell select option, .modal-layer select option { color: var(--ink); background: var(--surface); }
+.app-shell .collection-summary { margin-top: 12px; color: var(--muted); font-size: 11px; }
+.app-shell .card-grid { gap: 18px; }
+.app-shell .skill-card { padding: 24px; display: flex; flex-direction: column; min-width: 0; transition: border-color .2s; }
+.app-shell .skill-card:hover, .app-shell .project-card:hover { border-color: color-mix(in srgb, var(--ink) 40%, var(--line)); transform: none; box-shadow: none; }
+.app-shell .skill-card-head { margin-bottom: 24px; }
+.app-shell .skill-monogram { width: 44px; height: 44px; border-radius: 10px; color: var(--ink); background: var(--surface-soft); font-size: 14px; font-weight: 600; box-shadow: none; }
+.app-shell .skill-card > p { color: var(--muted); font-size: 11px; }
+.app-shell .skill-card h2 { margin: 7px 0 16px; font-size: 22px; font-weight: 600; letter-spacing: -.035em; overflow-wrap: anywhere; }
+.app-shell .skill-card .level-pill { align-self: flex-start; }
+.app-shell .skill-experience { margin-top: 12px; color: var(--muted); }
+.app-shell .skill-projects, .app-shell .skill-projects-empty { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); }
+.app-shell .skill-projects li { background: var(--surface-soft); color: var(--ink); border-color: var(--line); }
+.app-shell .card-actions button, .app-shell .project-link-row > *, .app-shell .icon-action { border-radius: 8px; color: var(--muted); }
+.app-shell .card-actions button:hover, .app-shell .project-link-row > *:hover, .app-shell .icon-action:hover { color: var(--ink); background: var(--surface-soft); }
+.app-shell .card-actions .danger:hover, .app-shell .project-link-row .danger:hover, .app-shell .icon-action.danger:hover { color: #bd3344; }
+.app-shell .project-list { gap: 20px; }
+.app-shell .project-card { overflow: hidden; padding: 0; }
+.app-shell .project-art { border-radius: 0; border: 0; background: var(--surface-soft); color: var(--muted); }
+.app-shell .project-art:not(:has(iframe)) {
+  background: linear-gradient(rgb(0 0 0 / .15), rgb(0 0 0 / .15)), url('/images/landing/work-evidence.webp') center / cover;
+  filter: grayscale(1);
+}
+.app-shell .project-art:not(:has(iframe)) > svg { color: #fff; padding: 10px; width: 52px; height: 52px; border-radius: 12px; background: rgb(0 0 0 / .6); }
+.app-shell .project-information { min-width: 0; padding: 24px; display: flex; flex-direction: column; gap: 18px; }
+.app-shell .project-actions { align-self: stretch; margin-top: auto; }
+.app-shell .project-link-row { flex-wrap: wrap; }
+.app-shell .project-copy { min-width: 0; }
+.app-shell .skill-projects li { padding: 5px 8px; border-radius: 5px; }
+.app-shell .project-copy h2 { font-size: 22px; font-weight: 600; letter-spacing: -.035em; overflow-wrap: anywhere; }
+.app-shell .project-copy p { color: var(--muted); line-height: 1.7; }
+.app-shell .project-copy li { color: var(--ink); background: var(--surface-soft); border: 1px solid var(--line); border-radius: 6px; }
+.app-shell .empty-state { color: var(--muted); }
+.app-shell :focus-visible, .modal-layer :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.app-shell ::selection, .modal-layer ::selection { background: var(--ink); color: var(--surface); }
+.app-shell input::placeholder, .modal-layer input::placeholder, .modal-layer textarea::placeholder { color: var(--subtle); opacity: 1; }
+.app-shell input, .modal-layer input, .modal-layer textarea { caret-color: var(--ink); }
+.app-shell *, .modal-layer * { scrollbar-color: var(--line) transparent; scrollbar-width: thin; }
+
+/* Dialogs share the workspace's quiet surfaces and clearer section divisions. */
+.modal-layer .modal-surface { border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 28px 100px rgb(0 0 0 / .22); }
+.modal-layer .dialog-header { padding: 28px 28px 22px; border-bottom: 1px solid var(--line); }
+.modal-layer .dialog-heading h2 { font-size: 26px; font-weight: 600; letter-spacing: -.035em; line-height: 1.25; }
+.modal-layer .dialog-description { margin-top: 9px; color: var(--muted); font-size: 12px; line-height: 1.7; max-width: 58ch; }
+.modal-layer .dialog-content { padding: 24px 28px; }
+.modal-layer .dialog-form { gap: 22px; }
+.modal-layer .dialog-form label { color: var(--ink); font-size: 12px; font-weight: 500; }
+.modal-layer .dialog-form input, .modal-layer .dialog-form select, .modal-layer .dialog-form textarea {
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: none; font-size: 13px;
+}
+.modal-layer .dialog-form input:not([type="checkbox"]), .modal-layer .dialog-form select { min-height: 44px; }
+.modal-layer .dialog-form input:focus, .modal-layer .dialog-form select:focus, .modal-layer .dialog-form textarea:focus { border-color: var(--ink); box-shadow: none; }
+.modal-layer .dialog-footer { padding: 18px 28px; border-top: 1px solid var(--line); background: var(--surface-soft); }
+.modal-layer .button { min-height: 42px; border-radius: 8px; font-size: 12px; }
+.modal-layer .button-primary { background: var(--ink); color: var(--surface); box-shadow: none; }
+.modal-layer .button-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 82%, var(--surface)); }
+.modal-layer .button-ghost { border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.modal-layer .application-details-grid { padding: 18px; border-radius: 10px; background: var(--surface-soft); }
+.modal-layer .skill-picker label { border-radius: 6px; }
+.modal-layer .modal-close { border: 1px solid var(--line); border-radius: 50%; background: var(--surface); }
+
+@media (max-width: 1023px) {
+  .app-shell .topbar {
+    width: var(--mobile-chrome-width, calc(100vw - 24px)); height: 60px; margin: 16px auto 0; min-height: 60px;
+    padding: 6px 10px 6px 23px; gap: clamp(8px, 2.5vw, 22px); border-radius: 999px;
+    justify-content: flex-start;
+  }
+  .app-shell .topbar .mobile-brand { display: block; flex: 0 0 auto; }
+  .app-shell .topbar .mobile-brand { order: 1; }
+  .app-shell .topbar .global-search-trigger {
+    order: 2; width: 44px; min-width: 44px; max-width: 44px; flex: 0 0 44px;
+    margin-left: auto; justify-content: center; padding: 0;
+  }
+  .app-shell .topbar .topbar-actions { order: 3; margin-left: 0; }
+  .app-shell .topbar .mobile-brand .brand {
+    width: auto; height: 44px; display: inline-flex; align-items: center; gap: 7px;
+    color: var(--ink); font-size: 15px; font-weight: 750; letter-spacing: -.045em;
+  }
+  .app-shell .topbar .mobile-brand .brand-mark { width: 25px; height: 25px; }
+  .app-shell .topbar .mobile-brand .brand-name { font-size: 15px; font-weight: 750; letter-spacing: -.045em; }
+  .app-shell .dashboard-grid > .panel { padding: 20px; }
+}
+@media (max-width: 760px) {
+  .app-shell .topbar { height: 54px; min-height: 54px; margin-top: 12px; padding: 4px 8px 4px 17px; border-radius: 999px; }
+  .app-shell .topbar .profile-button { height: 44px; min-height: 44px; padding: 3px; }
+}
+@media (max-width: 600px) {
+  .app-shell .page-heading { margin: 14px 0 22px; align-items: flex-start; }
+  .app-shell .page-heading h1 { font-size: 30px; }
+  .app-shell .collection-controls { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .app-shell .collection-controls > * { width: 100%; }
+  .app-shell .collection-filter, .app-shell .collection-sort { justify-content: space-between; }
+  .app-shell .collection-filter select, .app-shell .collection-sort select { flex: 1; max-width: 75%; }
+  .app-shell .dashboard-grid, .app-shell .dashboard-summary { gap: 12px; }
+  .app-shell .dashboard-summary > .metric-card { padding: 16px; }
+  .app-shell .dashboard-summary > .metric-card .metric-main strong { font-size: 30px; }
+  .app-shell .skill-card, .app-shell .project-information { padding: 20px; }
+  .modal-layer .dialog-header { padding: 22px 20px 18px; }
+  .modal-layer .dialog-heading h2 { font-size: 23px; }
+  .modal-layer .dialog-content { padding: 20px; }
+  .modal-layer .dialog-footer { padding: 16px 20px; }
+}
+@media (max-width: 420px) {
+  .app-shell .topbar { padding: 4px 6px 4px 13px; gap: 9px; }
+  .app-shell .topbar .mobile-brand .brand { gap: 4px; font-size: 13px; }
+  .app-shell .topbar .mobile-brand .brand-mark { width: 22px; height: 22px; }
+  .app-shell .topbar .mobile-brand .brand-name { font-size: 13px; }
+}
+@media (min-width: 1024px) {
+  .app-shell .topbar {
+    width: min(900px, calc(100vw - var(--sidebar-width) - var(--sidebar-width) - 48px));
+    margin: 16px auto 0; transform: translateX(-121px);
+    transition: transform .28s ease, width .28s ease;
+  }
+  .app-shell[data-collapsed="true"] .topbar { transform: translateX(-38px); }
+  .app-shell .topbar .mobile-brand { display: none; }
+  .app-shell .topbar .global-search-trigger { width: 320px; max-width: 320px; flex: 0 1 320px; }
+  .app-shell .topbar .profile-button { flex: 0 0 250px; width: 250px; }
+}
+@media (prefers-reduced-motion: reduce) { .workspace-mist { animation: none; } }
+
+/* Shared periwinkle and teal accents echo the landing page's signal colors. */
+.app-shell, .modal-layer {
+  --blue: #536fdb;
+  --blue-soft: #edf0ff;
+  --teal: #168f82;
+  --violet: #7864d8;
+  --amber: #bd7a18;
+}
+:root[data-theme="dark"] .app-shell,
+:root[data-theme="dark"] .modal-layer {
+  --blue: #9aabff;
+  --blue-soft: #252d49;
+  --teal: #61cbbb;
+  --violet: #b1a2ff;
+  --amber: #edbd6d;
+}
+.app-shell .nav-link.is-active { color: var(--blue); background: var(--blue-soft); }
+.app-shell .nav-link.is-active svg { color: var(--blue); }
+.app-shell .sidebar-visual-icon { color: var(--blue); background: var(--blue-soft); }
+.app-shell .soft-icon { color: var(--blue); background: var(--blue-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--blue) 13%, transparent); border-radius: 11px; }
+.app-shell .soft-icon.teal { color: var(--teal); background: color-mix(in srgb, var(--teal) 11%, var(--surface)); }
+.app-shell .soft-icon.violet { color: var(--violet); background: color-mix(in srgb, var(--violet) 11%, var(--surface)); }
+.app-shell .soft-icon.amber { color: var(--amber); background: color-mix(in srgb, var(--amber) 12%, var(--surface)); }
+.app-shell .text-link { color: var(--blue); }
+.app-shell .button-primary, .modal-layer .button-primary { color: #fff; background: var(--blue); }
+.app-shell .button-primary:hover:not(:disabled), .modal-layer .button-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--blue) 84%, #263a91); }
+.app-shell .dashboard-reminder .theme-image { filter: saturate(.78); }
+.app-shell .dashboard-reminder::after { background: linear-gradient(90deg, rgb(25 39 91 / .82), rgb(51 78 153 / .12)); }
+.app-shell .gap-row > div > i { background: var(--blue); }
+.app-shell :focus-visible, .modal-layer :focus-visible { outline-color: var(--blue); }
+.app-shell .talent-core { fill: color-mix(in srgb, var(--teal) 76%, var(--surface)); stroke: color-mix(in srgb, var(--teal) 62%, var(--surface)); filter: drop-shadow(0 5px 12px color-mix(in srgb, var(--teal) 20%, transparent)); }
+.app-shell .talent-core-halo { fill: color-mix(in srgb, var(--teal) 12%, transparent); stroke: color-mix(in srgb, var(--teal) 28%, transparent); }

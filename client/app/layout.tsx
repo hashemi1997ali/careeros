@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import './talent-graph.css'
+import './workspace.css'
+import { manrope } from '@/lib/brand-font'
 
 export const metadata: Metadata = {
   title: { default: 'CareerOS | Career workspace', template: '%s | CareerOS' },
@@ -26,7 +28,7 @@ const themeScript = `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className="h-full antialiased">
+    <html lang="en" suppressHydrationWarning className={`h-full antialiased ${manrope.variable}`}>
       <head><script dangerouslySetInnerHTML={{ __html: themeScript }} /></head>
       <body className="min-h-full">{children}</body>
     </html>

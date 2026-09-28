@@ -98,8 +98,7 @@ export function createTalentScene(canvas: HTMLCanvasElement, model: Model, onSel
     const core = ctx.createLinearGradient(center.x - 30, center.y - 30, center.x + 30, center.y + 30)
     core.addColorStop(0, '#6ee7c8'); core.addColorStop(1, '#14b8a6')
     ctx.fillStyle = core; ctx.beginPath(); ctx.arc(center.x, center.y, 30, 0, Math.PI * 2); ctx.fill()
-    drawBrain(center.x, center.y - 7)
-    ctx.fillStyle = '#063e35'; ctx.textAlign = 'center'; ctx.font = '600 12px system-ui, sans-serif'; ctx.fillText('Skills', center.x, center.y + 20)
+    drawBrain(center.x, center.y)
     labels.length = 0
     const labelNodes = [...projected].sort((a, b) => {
       const priority = (p: Projected) => model.nodes[p.index].skill.id === active ? 10 : p.z

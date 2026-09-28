@@ -84,7 +84,7 @@ export function DashboardView() {
           </div>
 
           <article className="image-message-card dashboard-card--reminder dashboard-reminder">
-            <Image className="theme-image theme-image-light" src="/images/careeros/mountain-day.png" fill sizes="(min-width: 1200px) 30vw, 100vw" alt="" unoptimized />
+            <Image className="theme-image theme-image-light" src="/images/landing/alpine-hero.webp" fill sizes="(min-width: 1200px) 30vw, 100vw" alt="" unoptimized />
             <Image className="theme-image theme-image-dark" src="/images/careeros/mountain-night.png" fill sizes="(min-width: 1200px) 30vw, 100vw" alt="" unoptimized />
             <div>
               <small>CAREEROS REMINDER</small>
@@ -199,7 +199,7 @@ export function DashboardView() {
                 <button type="button" onClick={() => void skillsQuery.refetch()}>Try again</button>
               </div>
             ) : (
-              <SkillGraph skills={skills} showLevels={false} showCenterLabel={false} showCaption={false} />
+              <SkillGraph skills={skills} showLevels={false} showCenterLabel={false} showCaption categoryMode />
             )}
           </article>
         </section>

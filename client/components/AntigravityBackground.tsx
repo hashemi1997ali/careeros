@@ -4,9 +4,9 @@ import dynamic from "next/dynamic";
 
 const Antigravity = dynamic(() => import("./Antigravity"), { ssr: false });
 
-export default function AntigravityBackground() {
+export default function AntigravityBackground({ className = "" }: { className?: string }) {
   return (
-    <div className="pointer-events-none fixed inset-0 -z-10">
+    <div className={className} aria-hidden="true">
       <Antigravity
         count={1300}
         magnetRadius={6}

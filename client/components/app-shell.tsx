@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react'
 import { Brand, BrandMark } from '@/components/brand'
 import { GlobalSearch } from '@/components/global-search'
 import { Icon, type IconName } from '@/components/icons'
@@ -18,6 +18,7 @@ const navigation: Array<{ label: string; href: string; icon: IconName }> = [
   { label: 'Projects', href: '/projects', icon: 'folder' },
   { label: 'Job analyzer', href: '/job-analyzer', icon: 'sparkles' },
 ]
+const mobileNavigation = [navigation[0], navigation[1], navigation[4], navigation[2], navigation[3]]
 const UserContext = createContext<CurrentUser | null>(null)
 const SkillsAppUrlContext = createContext<string | null>(null)
 export function useCareerUser() { const user = useContext(UserContext); if (!user) throw new Error('useCareerUser must be used inside AppShell'); return user }
@@ -37,6 +38,7 @@ const noSubscription = () => () => {}
 
 export function AppShell({ children, user, skillsAppUrl }: { children: ReactNode; user: CurrentUser; skillsAppUrl: string | null }) {
   const pathname = usePathname()
+  const mobileActiveIndex = Math.max(0, mobileNavigation.findIndex(item => pathname === item.href || pathname.startsWith(`${item.href}/`)))
   const collapsed = useSyncExternalStore(subscribePreferences, storedSidebar, () => false)
   const theme = useSyncExternalStore(subscribePreferences, storedTheme, (): ThemePreference => 'system')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -92,8 +94,9 @@ export function AppShell({ children, user, skillsAppUrl }: { children: ReactNode
       </aside>
 
       <div className="content-shell">
+        <div className="workspace-landscape" aria-hidden="true"><div className="workspace-mist" /></div>
         <header className="topbar"><div className="mobile-brand"><Brand compact href="/"/></div>
-          <button className="global-search-trigger" type="button" onClick={() => setSearchOpen(true)} aria-label="Search CareerOS"><Icon name="search"/><span>Search applications, skills and projects...</span><kbd>{shortcut}</kbd></button>
+          <button className="global-search-trigger" type="button" onClick={() => setSearchOpen(true)} aria-label="Search CareerOS"><Icon name="search"/><span>Search applications, skills and projects...</span></button>
           <div className="topbar-actions">
             <button className={`profile-button${profileOpen ? ' is-active' : ''}`} type="button" data-profile-trigger onClick={() => setProfileOpen(value => !value)} aria-expanded={profileOpen} aria-haspopup="dialog" aria-label="Open account menu">
               <Avatar user={user}/>
@@ -102,7 +105,12 @@ export function AppShell({ children, user, skillsAppUrl }: { children: ReactNode
             </button>
           </div>
         </header>
-        <nav className="mobile-nav" aria-label="Primary navigation">{navigation.map(item => <Link className={`${pathname === item.href || pathname.startsWith(`${item.href}/`) ? 'is-active ' : ''}${item.href === '/job-analyzer' ? 'mobile-nav-analyzer' : ''}`} aria-current={pathname === item.href || pathname.startsWith(`${item.href}/`) ? 'page' : undefined} href={item.href} key={item.href}><Icon name={item.icon}/><span>{item.label}</span></Link>)}</nav>
+        <nav className="mobile-nav" aria-label="Primary navigation">
+          <div className="mobile-nav-track" style={{ '--active-progress': `${mobileActiveIndex * 20}%` } as CSSProperties}>
+            <span className="mobile-nav-indicator" aria-hidden="true" />
+            {mobileNavigation.map(item => { const active = pathname === item.href || pathname.startsWith(`${item.href}/`); return <Link className={active ? 'is-active' : ''} aria-current={active ? 'page' : undefined} href={item.href} key={item.href} aria-label={item.label}><Icon name={item.icon}/><span>{item.label}</span></Link> })}
+          </div>
+        </nav>
         <main id="main-content" className="app-main"><div key={pathname} className="page-enter">{children}</div></main>
       </div>
     </div>

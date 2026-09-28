@@ -31,6 +31,7 @@ export default function ProjectsPage() {
   const params = useSearchParams()
   const client = useQueryClient()
   const [sort, setSort] = useState('name')
+  const [filter, setFilter] = useState('All')
   const [search, setSearch] = useState(params.get('search') ?? '')
   const [open, setOpen] = useState(params.get('new') === '1')
   const [editing, setEditing] = useState<Project | null>(null)
@@ -155,8 +156,12 @@ export default function ProjectsPage() {
 
   const visible = useMemo(() => {
     const term = search.trim().toLowerCase()
-    return projects.filter(project => !term || `${project.title} ${project.description}`.toLowerCase().includes(term)).sort((a, b) => sort === 'skills' ? b.skills.length - a.skills.length || a.title.localeCompare(b.title) : sort === 'started' ? (b.startDate ?? '').localeCompare(a.startDate ?? '') || a.title.localeCompare(b.title) : a.title.localeCompare(b.title))
-  }, [projects, search, sort])
+    return projects.filter(project => (
+      filter === 'All' || (filter === 'live' && Boolean(project.liveUrl)) ||
+      (filter === 'repository' && Boolean(project.repositoryUrl)) ||
+      (filter === 'unlinked' && !project.liveUrl && !project.repositoryUrl)
+    ) && (!term || `${project.title} ${project.description}`.toLowerCase().includes(term))).sort((a, b) => sort === 'skills' ? b.skills.length - a.skills.length || a.title.localeCompare(b.title) : sort === 'started' ? (b.startDate ?? '').localeCompare(a.startDate ?? '') || a.title.localeCompare(b.title) : a.title.localeCompare(b.title))
+  }, [projects, search, sort, filter])
 
   const toggle = (id: number) => setSkillIds(current => current.includes(id) ? current.filter(item => item !== id) : [...current, id])
 
@@ -179,7 +184,12 @@ export default function ProjectsPage() {
 
   return <>
     <section className="page-heading"><div><p className="eyebrow">PROOF OF WORK</p><h1>Projects</h1><p>Show what you built and the skills behind it.</p></div><button className="button button-primary" type="button" onClick={openCreate}><Icon name="plus" />Add project</button></section>
-    <ResourceToolbar search={search} onSearch={setSearch} searchLabel="Search projects" sort={sort} onSort={setSort} sortOptions={[{value:'name',label:'Name A–Z'},{value:'started',label:'Recently started'},{value:'skills',label:'Most linked skills'}]} count={visible.length} total={projects.length} loading={projectsQ.isPending} onReset={search ? () => setSearch('') : undefined}/>
+    <ResourceToolbar search={search} onSearch={setSearch} searchLabel="Search projects" filterLabel="Links" filter={filter} onFilter={setFilter} filters={[
+      { value: 'All', label: 'All projects', count: projects.length },
+      { value: 'live', label: 'With live demo', count: projects.filter(project => project.liveUrl).length },
+      { value: 'repository', label: 'With repository', count: projects.filter(project => project.repositoryUrl).length },
+      { value: 'unlinked', label: 'Without links', count: projects.filter(project => !project.liveUrl && !project.repositoryUrl).length },
+    ]} sort={sort} onSort={setSort} sortOptions={[{value:'name',label:'Name A–Z'},{value:'started',label:'Recently started'},{value:'skills',label:'Most linked skills'}]} count={visible.length} total={projects.length} loading={projectsQ.isPending} onReset={search || filter !== 'All' ? () => { setSearch(''); setFilter('All') } : undefined}/>
     {(projectsQ.error || listError) && <div className="error-banner" role="alert">{listError ?? projectsQ.error?.message}</div>}
     {projectsQ.isPending ? <LoadingState cards label="Loading projects"/> : visible.length ? (
       <section className="project-list">
@@ -189,7 +199,6 @@ export default function ProjectsPage() {
               {project.liveUrl && <iframe className="project-live-preview" src={project.liveUrl} title={`${project.title} live preview`} loading="lazy" scrolling="no" tabIndex={-1} />}
               {!project.liveUrl && <Icon name="folder" size={32} />}
               {project.liveUrl && <a className="project-live-link" href={project.liveUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open ${project.title} live site`} title="Open live site"><Icon name="external" size={17} /></a>}
-              <span>{String(index + 1).padStart(2, '0')}</span>
             </div>
             <div className="project-information">
               <div className="project-copy">
@@ -210,7 +219,7 @@ export default function ProjectsPage() {
           </article>
         ))}
       </section>
-    ) : <section className="panel"><EmptyState title="No projects found" description={search ? 'Change your search term.' : 'Add a project to turn your skills into visible evidence.'} /></section>}
+    ) : <section className="panel"><EmptyState title="No projects found" description={search || filter !== 'All' ? 'Change the filter or search term.' : 'Add a project to turn your skills into visible evidence.'} /></section>}
     <Dialog
       open={open}
       onClose={close}

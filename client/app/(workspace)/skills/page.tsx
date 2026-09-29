@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ResourceToolbar } from '@/components/resource-toolbar'
-import { LoadingState } from '@/components/loading-state'
+import { usePageState } from '@/components/page-state'
 import { Dialog } from '@/components/dialog'
 import { EmptyState } from '@/components/empty-state'
 import { Icon } from '@/components/icons'
@@ -43,12 +43,11 @@ export default function SkillsPage() {
   const [level, setLevel] = useState<SkillLevel>('Beginner')
   const [startDate, setStartDate] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [listError, setListError] = useState<string | null>(null)
 
-  const q = useQuery({ queryKey: ['skills'], queryFn: () => apiFetch<Skill[]>('/api/skills') })
+  const q = useQuery({ queryKey: ['skills'], queryFn: ({ signal }) => apiFetch<Skill[]>('/api/skills', { signal }) })
   const suggestionsQuery = useQuery({
     queryKey: ['skill-suggestions', name.trim()],
-    queryFn: () => apiFetch<SkillSuggestion[]>(`/api/skills/suggestions?search=${encodeURIComponent(name.trim())}`),
+    queryFn: ({ signal }) => apiFetch<SkillSuggestion[]>(`/api/skills/suggestions?search=${encodeURIComponent(name.trim())}`, { signal }),
     enabled: open && name.trim().length >= 2,
     staleTime: 15_000,
   })
@@ -109,8 +108,8 @@ export default function SkillsPage() {
 
   const del = useMutation({
     mutationFn: (id: number) => apiFetch<void>(`/api/skills/${id}`, { method: 'DELETE' }),
-    onMutate: async (id) => { setListError(null); await client.cancelQueries({ queryKey: ['skills'] }); const previous = client.getQueryData<Skill[]>(['skills']); client.setQueryData<Skill[]>(['skills'], (current = []) => current.filter(skill => skill.id !== id)); return { previous } },
-    onError: (cause: Error, _id, context) => { if (context?.previous) client.setQueryData(['skills'], context.previous); setListError(cause.message) },
+    onMutate: async (id) => { await client.cancelQueries({ queryKey: ['skills'] }); const previous = client.getQueryData<Skill[]>(['skills']); client.setQueryData<Skill[]>(['skills'], (current = []) => current.filter(skill => skill.id !== id)); return { previous } },
+    onError: (cause: Error, _id, context) => { if (context?.previous) client.setQueryData(['skills'], context.previous) },
     onSettled: () => { void Promise.all([client.invalidateQueries({ queryKey: ['skills'] }), client.invalidateQueries({ queryKey: ['projects'] }), client.invalidateQueries({ queryKey: ['dashboard'] })]) },
   })
 
@@ -118,11 +117,13 @@ export default function SkillsPage() {
   const visible = useMemo(() => { const term = search.trim().toLowerCase(); return skills.filter(skill => (category === 'All' || skill.category === category) && (!term || `${skill.name} ${skill.category}`.toLowerCase().includes(term))).sort((a, b) => sort === 'level' ? levels.indexOf(b.level) - levels.indexOf(a.level) || a.name.localeCompare(b.name) : sort === 'evidence' ? b.projects.length - a.projects.length || a.name.localeCompare(b.name) : a.name.localeCompare(b.name)) }, [category, search, skills, sort])
   const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); if (name.trim().length < 2 || cat.trim().length < 2) return; save.mutate({ id: editing?.id ?? null, payload: { name: name.trim(), category: cat.trim(), level, startDate: startDate || null } }) }
 
+  const pageState = usePageState([q], 'Loading your skills')
+  if (pageState) return pageState
+
   return <>
     <section className="page-heading"><div><p className="eyebrow">YOUR CAPABILITIES</p><h1>Skills</h1><p>Track your skills and evidence.</p></div><div className="talent-page-actions"><Link className="button button-ghost" href="/skills/graph"><Icon name="brain" size={17}/>Skill Core</Link><button className="button button-primary" type="button" onClick={openCreate}><Icon name="plus" />Add skill</button></div></section>
-    <ResourceToolbar search={search} onSearch={setSearch} searchLabel="Search skills" filters={categories.map(value => ({value,label:value,count:value === 'All' ? skills.length : skills.filter(skill => skill.category === value).length}))} filter={category} onFilter={setCategory} sort={sort} onSort={setSort} sortOptions={[{value:'name',label:'Name A–Z'},{value:'level',label:'Highest proficiency'},{value:'evidence',label:'Most project evidence'}]} count={visible.length} total={skills.length} loading={q.isPending} onReset={search || category !== 'All' ? () => { setSearch(''); setCategory('All') } : undefined}/>
-    {(q.error || listError) && <div className="error-banner" role="alert">{listError ?? q.error?.message}</div>}
-    {q.isPending ? <LoadingState cards label="Loading skills"/> : visible.length ? <section className="card-grid">{visible.map(skill => <article className="skill-card" key={skill.id}>
+    <ResourceToolbar search={search} onSearch={setSearch} searchLabel="Search skills" filters={categories.map(value => ({value,label:value,count:value === 'All' ? skills.length : skills.filter(skill => skill.category === value).length}))} filter={category} onFilter={setCategory} sort={sort} onSort={setSort} sortOptions={[{value:'name',label:'Name A–Z'},{value:'level',label:'Highest proficiency'},{value:'evidence',label:'Most project evidence'}]} count={visible.length} total={skills.length} onReset={search || category !== 'All' ? () => { setSearch(''); setCategory('All') } : undefined}/>
+    {visible.length ? <section className="card-grid">{visible.map(skill => <article className="skill-card" key={skill.id}>
       <div className="skill-card-heading">
         <div className="skill-card-title"><h2>{skill.name}</h2></div>
         <span className={`level-pill ${skill.level}`}>{skill.level}</span>

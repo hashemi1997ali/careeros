@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ResourceToolbar } from '@/components/resource-toolbar'
-import { LoadingState } from '@/components/loading-state'
+import { usePageState } from '@/components/page-state'
 import { Dialog } from '@/components/dialog'
 import { EmptyState } from '@/components/empty-state'
 import { Icon } from '@/components/icons'
@@ -45,10 +45,9 @@ export default function ProjectsPage() {
   const [endDate, setEndDate] = useState('')
   const [skillIds, setSkillIds] = useState<number[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [listError, setListError] = useState<string | null>(null)
 
-  const projectsQ = useQuery({ queryKey: ['projects'], queryFn: () => apiFetch<Project[]>('/api/projects') })
-  const skillsQ = useQuery({ queryKey: ['skills'], queryFn: () => apiFetch<Skill[]>('/api/skills') })
+  const projectsQ = useQuery({ queryKey: ['projects'], queryFn: ({ signal }) => apiFetch<Project[]>('/api/projects', { signal }) })
+  const skillsQ = useQuery({ queryKey: ['skills'], queryFn: ({ signal }) => apiFetch<Skill[]>('/api/skills', { signal }) })
   const projects = useMemo(() => projectsQ.data ?? [], [projectsQ.data])
   const skills = useMemo(() => skillsQ.data ?? [], [skillsQ.data])
 
@@ -141,7 +140,6 @@ export default function ProjectsPage() {
   const del = useMutation({
     mutationFn: (id: number) => apiFetch<void>(`/api/projects/${id}`, { method: 'DELETE' }),
     onMutate: async (id) => {
-      setListError(null)
       await client.cancelQueries({ queryKey: ['projects'] })
       const previous = client.getQueryData<Project[]>(['projects'])
       client.setQueryData<Project[]>(['projects'], (current = []) => current.filter(project => project.id !== id))
@@ -149,7 +147,6 @@ export default function ProjectsPage() {
     },
     onError: (cause: Error, _id, context) => {
       if (context?.previous) client.setQueryData(['projects'], context.previous)
-      setListError(cause.message)
     },
     onSettled: () => { void Promise.all([client.invalidateQueries({ queryKey: ['projects'] }), client.invalidateQueries({ queryKey: ['dashboard'] })]) },
   })
@@ -182,6 +179,9 @@ export default function ProjectsPage() {
     })
   }
 
+  const pageState = usePageState([projectsQ, skillsQ], 'Loading your projects')
+  if (pageState) return pageState
+
   return <>
     <section className="page-heading"><div><p className="eyebrow">PROOF OF WORK</p><h1>Projects</h1><p>Show what you built and the skills behind it.</p></div><button className="button button-primary" type="button" onClick={openCreate}><Icon name="plus" />Add project</button></section>
     <ResourceToolbar search={search} onSearch={setSearch} searchLabel="Search projects" filterLabel="Links" filter={filter} onFilter={setFilter} filters={[
@@ -189,9 +189,8 @@ export default function ProjectsPage() {
       { value: 'live', label: 'With live demo', count: projects.filter(project => project.liveUrl).length },
       { value: 'repository', label: 'With repository', count: projects.filter(project => project.repositoryUrl).length },
       { value: 'unlinked', label: 'Without links', count: projects.filter(project => !project.liveUrl && !project.repositoryUrl).length },
-    ]} sort={sort} onSort={setSort} sortOptions={[{value:'name',label:'Name A–Z'},{value:'started',label:'Recently started'},{value:'skills',label:'Most linked skills'}]} count={visible.length} total={projects.length} loading={projectsQ.isPending} onReset={search || filter !== 'All' ? () => { setSearch(''); setFilter('All') } : undefined}/>
-    {(projectsQ.error || listError) && <div className="error-banner" role="alert">{listError ?? projectsQ.error?.message}</div>}
-    {projectsQ.isPending ? <LoadingState cards label="Loading projects"/> : visible.length ? (
+    ]} sort={sort} onSort={setSort} sortOptions={[{value:'name',label:'Name A–Z'},{value:'started',label:'Recently started'},{value:'skills',label:'Most linked skills'}]} count={visible.length} total={projects.length} onReset={search || filter !== 'All' ? () => { setSearch(''); setFilter('All') } : undefined}/>
+    {visible.length ? (
       <section className="project-list">
         {visible.map((project, index) => (
           <article className="project-card" key={project.id}>

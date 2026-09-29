@@ -1,5 +1,5 @@
-import { LoadingState } from '@/components/loading-state'
+import { PageLoader } from '@/components/page-state'
 
 export default function Loading() {
-  return <div className="page-loading"><p className="eyebrow">YOUR WORKSPACE</p><LoadingState label="Loading page"/></div>
+  return <PageLoader />
 }

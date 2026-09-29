@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { upstreamFetch, upstreamResponse, upstreamStatusHeader } from '@/lib/upstream-response'
 import { getApiAccessToken } from '@/lib/api-auth'
 import { auth0 } from '@/lib/auth0'
 import { careerOs } from '@/lib/config'
@@ -22,11 +23,13 @@ export async function GET() {
     return NextResponse.json({ error: 'not_authenticated' }, { status: 401 })
   }
 
-  const response = await fetch(`${careerOs().SERVER_URL}/api/users/sync`, {
+  const response = await upstreamFetch(`${careerOs().SERVER_URL}/api/users/sync`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}` },
     cache: 'no-store',
   })
+
+  if (response.headers.get(upstreamStatusHeader)) return upstreamResponse(response)
 
   if (!response.ok) {
     console.error('[api/me] user synchronization failed with status', response.status)

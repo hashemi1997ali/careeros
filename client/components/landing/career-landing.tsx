@@ -4,8 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import styles from "@/app/landing.module.css";
 import { BrandMark } from "@/components/brand";
 import { Icon } from "@/components/icons";
-import { OraviaParticleField } from "@/components/landing/oravia-particle-field";
+import dynamic from "next/dynamic";
 import { headerScrollThreshold } from "@/lib/ui-chrome";
+
+// three.js is ~600 KB: load the particle field after first paint instead of in the main bundle.
+const OraviaParticleField = dynamic(
+  () => import("@/components/landing/oravia-particle-field").then((mod) => mod.OraviaParticleField),
+  { ssr: false, loading: () => <div className={styles.particleField} aria-hidden="true" /> },
+);
 
 const signup = "/auth/login?screen_hint=signup&returnTo=/dashboard";
 

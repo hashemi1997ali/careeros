@@ -6,6 +6,7 @@ import { useCallback, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Icon } from '@/components/icons'
 import { LoadingState } from '@/components/loading-state'
+import { usePageState } from '@/components/page-state'
 import { PanelTitle } from '@/components/panel-title'
 import { useSkillsAppUrl } from '@/components/app-shell'
 import { apiFetch } from '@/lib/api-client'
@@ -39,7 +40,7 @@ export default function JobAnalyzerPage() {
   const [lastAnalyzedContext, setLastAnalyzedContext] = useState<string | null>(null)
   const analysisLock = useRef(false)
   const skillsAppUrl = useSkillsAppUrl()
-  const applicationsQuery = useQuery({ queryKey: ['applications'], queryFn: () => apiFetch<JobApplication[]>('/api/job-applications') })
+  const applicationsQuery = useQuery({ queryKey: ['applications'], queryFn: ({ signal }) => apiFetch<JobApplication[]>('/api/job-applications', { signal }) })
   const applications = applicationsQuery.data ?? []
   const selected = applications.find(item => item.id === selectedId)
   const canRunAi = Boolean(selectedId) || jobText.trim().length > 0
@@ -98,18 +99,20 @@ export default function JobAnalyzerPage() {
 
   const applicationForResult = selectedId ? selected : aiAnalysis?.extractedApplication
 
+  const pageState = usePageState([applicationsQuery], 'Loading the analyzer')
+  if (pageState) return pageState
+
   return <>
     <section className="page-heading"><div><p className="eyebrow">ROLE FIT</p><h1>Job match analyzer</h1><p>Compare a job with your profile.</p></div></section>
     <div className="analyzer-note"><Icon name="sparkles" /><div><strong>AI extraction and skill analysis</strong><p>Choose one saved application or paste one job posting. CareerOS compares the selected context with your current skills, levels and experience.</p></div></div>
-    {applicationsQuery.error && <div className="error-banner" role="alert">{applicationsQuery.error.message}</div>}
     <section className="analyzer-grid">
       <article className="panel analyzer-input">
         <PanelTitle icon="briefcase" title="Choose a role or paste a posting" subtitle="Use one source at a time so the analysis stays focused." />
-        {applicationsQuery.isPending ? <div className="analyzer-skeleton"><LoadingState label="Loading saved applications"/></div> : <>
+        <>
           {applications.length ? <><label htmlFor="application-select">Saved application</label><select disabled={aiPending} id="application-select" value={selectedId ?? ''} onChange={event => selectApplication(event.target.value)}><option value="">Select an application</option>{applications.map(application => <option key={application.id} value={application.id}>{application.position} — {application.company}</option>)}</select>{selected && <div className="selected-role-card"><span className={`status-pill ${selected.status}`}>{formatApplicationStatus(selected.status)}</span><h2>{selected.position}</h2><p>{selected.company}</p><div className="requirement-preview"><strong>{selected.requirements.length} requirements</strong>{selected.requirements.length ? <ul>{selected.requirements.slice(0, 8).map(requirement => <li key={requirement.id}><span>{requirement.name}</span><small>{requirement.isRequired ? 'Required' : 'Optional'}</small></li>)}</ul> : <p>This application does not have requirements yet.</p>}</div></div>} </> : <p className="analyzer-help">No saved applications yet. You can still paste a job posting below, or <Link className="text-link" href="/applications?new=1">add an application</Link>.</p>}
           {!selectedId && <><label htmlFor="job-posting-text">Job posting text <span className="field-hint">Use this instead of selecting an application</span></label><textarea disabled={aiPending} id="job-posting-text" className="analyzer-job-text" maxLength={30000} value={jobText} onChange={event => typeJobText(event.target.value)} placeholder="Paste text copied from LinkedIn, Indeed, or another job board..." /></>}
           <div className="analyzer-actions"><button className="button button-dark button-block" type="button" disabled={!canRunAi || aiPending || hasAnalyzedCurrentContext} onClick={analyzeWithAi}>{aiPending ? 'Analyzing with AI…' : 'Analyze with AI'}<Icon name="sparkles" /></button></div>
-        </>}
+        </>
       </article>
       <article className="panel analyzer-result">
         <PanelTitle icon="chart" title="Analysis result" subtitle="Matched skills, gaps, experience context and next learning steps." />

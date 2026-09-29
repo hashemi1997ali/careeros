@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import './talent-graph.css'
 import './workspace.css'
+import './motion.css'
 import { manrope } from '@/lib/brand-font'
 
 export const metadata: Metadata = {

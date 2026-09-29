@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getApiAccessToken } from '@/lib/api-auth'
 import { careerOs } from '@/lib/config'
-import { upstreamResponse } from '@/lib/upstream-response'
+import { upstreamFetch, upstreamResponse } from '@/lib/upstream-response'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   const upstreamUrl = new URL('/api/skills/suggestions', careerOs().SERVER_URL)
   upstreamUrl.search = requestUrl.search
 
-  return upstreamResponse(await fetch(upstreamUrl, {
+  return upstreamResponse(await upstreamFetch(upstreamUrl, {
     headers: { Authorization: `Bearer ${accessToken}` },
     cache: 'no-store',
   }))

@@ -16,7 +16,7 @@
 .skip{position:fixed;top:-80px;left:20px;z-index:100;padding:12px 18px;background:var(--ink);color:var(--canvas);border-radius:3px}.skip:focus{top:15px}
 .particleField{position:fixed;inset:0;z-index:0;width:100vw;height:100vh;opacity:.42;overflow:hidden;pointer-events:none;transition:opacity .24s ease}
 .particleField[data-hidden-for-definition="true"]{opacity:0!important}
-.particleField canvas{display:block;width:100%;height:100%}
+.particleField canvas{display:block;width:100%;height:100%;animation:particle-in .9s cubic-bezier(.22,1,.36,1) both}@keyframes particle-in{from{opacity:0}to{opacity:1}}
 
 .header{position:fixed;top:var(--career-header-offset);left:0;right:auto;width:100vw;z-index:50;padding:0;border:0;background:transparent}
 .headerScrolled{background:transparent}

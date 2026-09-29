@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { useQuery } from '@tanstack/react-query'
 import { EmptyState } from '@/components/empty-state'
 import { Icon, type IconName } from '@/components/icons'
-import { LoadingState } from '@/components/loading-state'
+import { usePageState } from '@/components/page-state'
 import { PanelTitle } from '@/components/panel-title'
 import { SkillGraph } from '@/components/skill-graph'
 import { useCareerUser, useSkillsAppUrl } from '@/components/app-shell'
@@ -27,8 +27,8 @@ const pipeline: Array<{ key: ApplicationStatus; label: string; tone: string }> =
 export function DashboardView() {
   const user = useCareerUser()
   const skillsAppUrl = useSkillsAppUrl()
-  const dashboardQuery = useQuery({ queryKey: ['dashboard'], queryFn: () => apiFetch<DashboardData>('/api/dashboard') })
-  const skillsQuery = useQuery({ queryKey: ['skills'], queryFn: () => apiFetch<Skill[]>('/api/skills') })
+  const dashboardQuery = useQuery({ queryKey: ['dashboard'], queryFn: ({ signal }) => apiFetch<DashboardData>('/api/dashboard', { signal }) })
+  const skillsQuery = useQuery({ queryKey: ['skills'], queryFn: ({ signal }) => apiFetch<Skill[]>('/api/skills', { signal }) })
   const dashboard = dashboardQuery.data
   const skills = skillsQuery.data ?? []
   const displayName = user.displayName?.trim()
@@ -38,6 +38,9 @@ export function DashboardView() {
     skillsAppUrl,
     (dashboard?.topMissingSkills ?? []).slice(0, 5).map(skill => skill.name),
   )
+
+  const pageState = usePageState([dashboardQuery, skillsQuery], 'Loading your dashboard')
+  if (pageState) return pageState
 
   return (
     <>
@@ -49,17 +52,7 @@ export function DashboardView() {
         </div>
       </section>
 
-      {dashboardQuery.error && (
-        <div className="error-banner" role="alert">
-          <span>{dashboardQuery.error.message}</span>
-          <button type="button" onClick={() => void dashboardQuery.refetch()}>Try again</button>
-        </div>
-      )}
-
-      {dashboardQuery.isPending ? (
-        <LoadingState cards label="Loading dashboard" />
-      ) : (
-        <section className="dashboard-grid">
+      <section className="dashboard-grid">
           <div className="dashboard-summary">
             <Metric
               icon="briefcase"
@@ -185,19 +178,9 @@ export function DashboardView() {
               <PanelTitle icon="brain" title="Skill profile" subtitle="Your strongest skills at a glance." />
               <Link className="text-link" href="/skills/graph">View all</Link>
             </div>
-            {skillsQuery.isPending ? (
-              <LoadingState label="Loading skills" />
-            ) : skillsQuery.error ? (
-              <div className="error-banner" role="alert">
-                <span>{skillsQuery.error.message}</span>
-                <button type="button" onClick={() => void skillsQuery.refetch()}>Try again</button>
-              </div>
-            ) : (
-              <SkillGraph skills={skills} showLevels={false} showCenterLabel={false} showCaption categoryMode />
-            )}
+            <SkillGraph skills={skills} showLevels={false} showCenterLabel={false} showCaption categoryMode />
           </article>
-        </section>
-      )}
+      </section>
     </>
   )
 }

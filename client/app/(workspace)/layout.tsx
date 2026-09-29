@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { upstreamFetch } from '@/lib/upstream-response'
 import { auth0 } from '@/lib/auth0'
 import { getApiAccessToken } from '@/lib/api-auth'
 import { careerOs } from '@/lib/config'
@@ -22,11 +23,11 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   const accessToken = await getApiAccessToken()
   if (accessToken) {
     try {
-      const response = await fetch(`${careerOs().SERVER_URL}/api/users/sync`, {
+      const response = await upstreamFetch(`${careerOs().SERVER_URL}/api/users/sync`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}` },
         cache: 'no-store',
-      })
+      }, 3_000) // keep the shell fast; the page itself reports an offline API
       if (response.ok) {
         const payload = (await response.json()) as { user: SyncedUser }
         syncedUser = payload.user

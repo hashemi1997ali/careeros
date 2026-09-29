@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { apiFetch } from '@/lib/api-client'
+import { apiFetch, isServerUnavailable } from '@/lib/api-client'
 import { Icon } from '@/components/icons'
 import { ModalCloseButton, ModalShell } from '@/components/modal-shell'
 import type { JobApplication, Project, Skill } from '@/components/types'
@@ -14,6 +14,7 @@ export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => 
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Results>(empty)
   const [loading, setLoading] = useState(false)
+  const [failure, setFailure] = useState<'offline' | 'error' | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { if (open) requestAnimationFrame(() => inputRef.current?.focus()) }, [open])
@@ -31,16 +32,16 @@ export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => 
           apiFetch<Project[]>(`/api/projects?search=${search}`, { signal: controller.signal }),
         ])
         setResults({ applications, skills, projects })
-      } catch { if (!controller.signal.aborted) setResults(empty) }
+      } catch (error) { if (!controller.signal.aborted) { setResults(empty); setFailure(isServerUnavailable(error) ? 'offline' : 'error') } }
       finally { if (!controller.signal.aborted) setLoading(false) }
     }, 220)
     return () => { controller.abort(); window.clearTimeout(timer) }
   }, [open, query])
   const count = results.applications.length + results.skills.length + results.projects.length
   return <ModalShell open={open} onClose={onClose} surfaceClassName="command-panel" ariaLabel="Search CareerOS">
-      <div className="command-input"><Icon name="search"/><input aria-label="Search workspace" ref={inputRef} value={query} onChange={(e) => { setQuery(e.target.value); setResults(empty); setLoading(e.target.value.trim().length >= 2) }} placeholder="Search applications, skills and projects..."/><ModalCloseButton className="command-close" onClose={onClose}/></div>
+      <div className="command-input"><Icon name="search"/><input aria-label="Search workspace" ref={inputRef} value={query} onChange={(e) => { setQuery(e.target.value); setResults(empty); setFailure(null); setLoading(e.target.value.trim().length >= 2) }} placeholder="Search applications, skills and projects..."/><ModalCloseButton className="command-close" onClose={onClose}/></div>
       <div className="command-results">
-        {query.trim().length < 2 ? <div className="command-hint"><Icon name="search" size={26}/><strong>Search across your workspace</strong><span>Type at least two characters.</span></div> : loading ? <div className="command-hint"><span className="spinner"/>Searching…</div> : count === 0 ? <div className="command-hint">No matching items found.</div> : <>
+        {query.trim().length < 2 ? <div className="command-hint"><Icon name="search" size={26}/><strong>Search across your workspace</strong><span>Type at least two characters.</span></div> : loading ? <div className="command-hint"><span className="spinner"/>Searching…</div> : failure ? <div className="command-hint command-hint-error" role="alert"><Icon name={failure === 'offline' ? 'serverOff' : 'alert'} size={26}/><strong>{failure === 'offline' ? 'Can’t connect to the server' : 'Search didn’t work'}</strong><span>Try again in a moment.</span></div> : count === 0 ? <div className="command-hint">No matching items found.</div> : <>
           {results.applications.length > 0 && <Group title="Applications">{results.applications.slice(0,5).map(item => <Link key={item.id} href={`/applications?search=${encodeURIComponent(item.company)}`} onClick={onClose}><span className="search-result-icon"><Icon name="briefcase"/></span><span><strong>{item.position}</strong><small>{item.company}</small></span><Icon name="arrow" size={16}/></Link>)}</Group>}
           {results.skills.length > 0 && <Group title="Skills">{results.skills.slice(0,5).map(item => <Link key={item.id} href={`/skills?search=${encodeURIComponent(item.name)}`} onClick={onClose}><span className="search-result-icon"><Icon name="sparkles"/></span><span><strong>{item.name}</strong><small>{item.category} · {item.level}</small></span><Icon name="arrow" size={16}/></Link>)}</Group>}
           {results.projects.length > 0 && <Group title="Projects">{results.projects.slice(0,5).map(item => <Link key={item.id} href={`/projects?search=${encodeURIComponent(item.title)}`} onClick={onClose}><span className="search-result-icon"><Icon name="folder"/></span><span><strong>{item.title}</strong><small>{item.skills.length} linked skills</small></span><Icon name="arrow" size={16}/></Link>)}</Group>}

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getApiAccessToken } from '@/lib/api-auth'
 import { careerOs } from '@/lib/config'
-import { upstreamResponse } from '@/lib/upstream-response'
+import { upstreamFetch, upstreamResponse } from '@/lib/upstream-response'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   const upstreamUrl = new URL('/api/job-applications', careerOs().SERVER_URL)
   upstreamUrl.search = requestUrl.search
 
-  const response = await fetch(upstreamUrl, {
+  const response = await upstreamFetch(upstreamUrl, {
     headers: { Authorization: `Bearer ${accessToken}` },
     cache: 'no-store',
   })
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'invalid_json' }, { status: 400 })
   }
 
-  const response = await fetch(`${careerOs().SERVER_URL}/api/job-applications`, {
+  const response = await upstreamFetch(`${careerOs().SERVER_URL}/api/job-applications`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,

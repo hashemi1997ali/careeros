@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '@/components/icons'
 
@@ -11,6 +11,7 @@ export function ModalShell({
   onClose,
   layerClassName = '',
   surfaceClassName,
+  anchorRef,
   ariaLabel,
   labelledBy,
   children,
@@ -19,6 +20,7 @@ export function ModalShell({
   onClose: () => void
   layerClassName?: string
   surfaceClassName: string
+  anchorRef?: RefObject<HTMLElement | null>
   ariaLabel?: string
   labelledBy?: string
   children: ReactNode
@@ -26,6 +28,7 @@ export function ModalShell({
   const [mounted, setMounted] = useState(false)
   const [visible, setVisible] = useState(false)
   const surfaceRef = useRef<HTMLElement>(null)
+  const layerRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef(onClose)
   useEffect(() => { closeRef.current = onClose }, [onClose])
 
@@ -50,6 +53,34 @@ export function ModalShell({
     const frame = window.requestAnimationFrame(() => setVisible(true))
     return () => window.cancelAnimationFrame(frame)
   }, [mounted, open])
+
+  useEffect(() => {
+    if (!mounted || !open || !anchorRef) return
+    const updatePosition = () => {
+      const anchor = anchorRef.current
+      const layer = layerRef.current
+      if (!anchor || !layer) return
+      const rect = anchor.getBoundingClientRect()
+      const surface = surfaceRef.current
+      const surfaceWidth = surface?.offsetWidth ?? 250
+      const surfaceHeight = surface?.offsetHeight ?? 220
+      const left = Math.min(Math.max(12, rect.right - surfaceWidth), window.innerWidth - surfaceWidth - 12)
+      const maxTop = Math.max(12, window.innerHeight - Math.min(surfaceHeight, window.innerHeight - 24) - 12)
+      const top = Math.min(rect.bottom + 8, maxTop)
+      layer.style.setProperty('--modal-anchor-left', `${left}px`)
+      layer.style.setProperty('--modal-anchor-top', `${top}px`)
+    }
+    updatePosition()
+    window.addEventListener('resize', updatePosition)
+    window.addEventListener('scroll', updatePosition, true)
+    const observer = new ResizeObserver(updatePosition)
+    if (anchorRef.current) observer.observe(anchorRef.current)
+    return () => {
+      window.removeEventListener('resize', updatePosition)
+      window.removeEventListener('scroll', updatePosition, true)
+      observer.disconnect()
+    }
+  }, [mounted, open, anchorRef])
 
   useEffect(() => {
     if (!mounted || !open) return
@@ -99,6 +130,7 @@ export function ModalShell({
 
   return createPortal(
     <div
+      ref={layerRef}
       className={`modal-layer modal-backdrop ${layerClassName}`.trim()}
       data-open={visible ? 'true' : 'false'}
       role="presentation"

@@ -1,7 +1,7 @@
 import { levelRank, projectPoint, rotatePoint, type buildSkillSphere, type Point3 } from '@/lib/skill-graph-model'
 
 type Model = ReturnType<typeof buildSkillSphere>
-export type SceneOptions = { selectedId: number | null; search: string; zoom: number; autoRotate: boolean; reducedMotion: boolean }
+export type SceneOptions = { selectedId: number | null; selectedCategoryKey: string | null; search: string; zoom: number; autoRotate: boolean; reducedMotion: boolean }
 type Projected = ReturnType<typeof projectPoint> & { index: number }
 
 /** Perspective projection of a rotating 3D unit sphere, drawn at device resolution. */
@@ -9,7 +9,7 @@ export function createTalentScene(canvas: HTMLCanvasElement, model: Model, onSel
   const context = canvas.getContext('2d')
   if (!context) return null
   const ctx: CanvasRenderingContext2D = context
-  let options: SceneOptions = { selectedId: null, search: '', zoom: 1, autoRotate: true, reducedMotion: false }
+  let options: SceneOptions = { selectedId: null, selectedCategoryKey: null, search: '', zoom: 1, autoRotate: true, reducedMotion: false }
   let width = 1, height = 1, ratio = 1, yaw = .3, pitch = -.15, frame = 0, last = 0, inView = true
   let velocityX = 0, velocityY = 0, hover: number | null = null
   let homeTransition: { started: number; duration: number; fromYaw: number; toYaw: number; fromPitch: number } | null = null
@@ -31,7 +31,7 @@ export function createTalentScene(canvas: HTMLCanvasElement, model: Model, onSel
   }
   const isMatch = (index: number) => {
     const node = model.nodes[index]
-    return !options.search || node.skill.name.toLowerCase().includes(options.search.toLowerCase())
+    return !options.search || node.category.label.toLowerCase().includes(options.search.toLowerCase())
   }
   const point = (p: Point3) => projectPoint(rotatePoint(p, yaw, pitch), width, height, options.zoom)
   const line = (a: { x: number; y: number }, b: { x: number; y: number }, color: string, alpha: number, weight = 1) => {
@@ -59,9 +59,10 @@ export function createTalentScene(canvas: HTMLCanvasElement, model: Model, onSel
     projected = model.nodes.map((node, index) => ({ ...point(node.position), index }))
     const active = hover ?? options.selectedId
     const activeNode = model.nodes.find(node => node.skill.id === active)
+    const activeCategoryKey = options.selectedId !== null ? activeNode?.category.key : options.selectedCategoryKey ?? activeNode?.category.key
     for (const edge of model.edges) {
       const a = projected[edge.from], b = projected[edge.to]
-      const related = activeNode?.category.key === edge.category
+      const related = activeCategoryKey === edge.category
       const matched = isMatch(edge.from) && isMatch(edge.to)
       line(a, b, model.nodes[edge.from].category.color, related ? .55 : matched ? (dark ? .2 : .3) : .045, related ? 1.4 : .8)
     }
@@ -74,11 +75,11 @@ export function createTalentScene(canvas: HTMLCanvasElement, model: Model, onSel
     }
     for (const p of projected) {
       const node = model.nodes[p.index], selected = node.skill.id === active
-      line(center, p, node.category.color, selected ? .85 : isMatch(p.index) ? .12 + (p.z + 1) * .1 : .035, selected ? 1.8 : .8)
+      if (options.selectedCategoryKey === null || options.selectedId !== null) line(center, p, node.category.color, selected ? .85 : isMatch(p.index) ? .12 + (p.z + 1) * .1 : .035, selected ? 1.8 : .8)
     }
     const sorted = [...projected].sort((a, b) => a.z - b.z)
     const drawNode = (p: Projected) => {
-      const node = model.nodes[p.index], active = node.skill.id === hover || node.skill.id === options.selectedId
+      const node = model.nodes[p.index], active = node.skill.id === hover || node.skill.id === options.selectedId || (!hover && !options.selectedId && node.category.key === options.selectedCategoryKey)
       const opacity = isMatch(p.index) || active ? .45 + (p.z + 1) * .275 : .13
       const radius = (3.5 + levelRank[node.skill.level]) * p.scale
       if (active) {

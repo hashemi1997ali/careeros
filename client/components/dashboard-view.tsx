@@ -24,12 +24,6 @@ const pipeline: Array<{ key: ApplicationStatus; label: string; tone: string }> =
   { key: 'Withdrawn', label: 'Withdrawn', tone: 'slate' },
 ]
 
-function dateLabel(value: string | null) {
-  return value
-    ? new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value))
-    : 'Not applied yet'
-}
-
 export function DashboardView() {
   const user = useCareerUser()
   const skillsAppUrl = useSkillsAppUrl()
@@ -149,7 +143,7 @@ export function DashboardView() {
             </div>
             <div className="dashboard-list-slot">
               {dashboard?.recentApplications.length ? (
-                <div className="data-table" role="region" aria-label="Recent applications" tabIndex={0}>
+                <div className="data-table dashboard-applications-table" role="region" aria-label="Recent applications">
                   <table role="table">
                     <caption className="sr-only">Your most recently updated applications</caption>
                     <thead>
@@ -157,20 +151,20 @@ export function DashboardView() {
                         <th scope="col">Company</th>
                         <th scope="col">Role</th>
                         <th scope="col">Status</th>
-                        <th scope="col">Applied</th>
+                        <th scope="col">Location</th>
                       </tr>
                     </thead>
                     <tbody role="rowgroup">
                       {dashboard.recentApplications.slice(0, 3).map(application => (
                         <tr role="row" key={application.id}>
                           <td role="cell" data-label="Company"><strong>{application.company}</strong></td>
-                          <td role="cell" data-label="Role">{application.position}</td>
+                          <td role="cell" data-label="Role"><span>{application.position}</span></td>
                           <td role="cell" data-label="Status">
                             <span className={`status-pill ${application.status}`}>
                               {formatApplicationStatus(application.status)}
                             </span>
                           </td>
-                          <td role="cell" data-label="Applied">{dateLabel(application.appliedAt)}</td>
+                          <td role="cell" data-label="Location"><span>{application.location || '—'}</span></td>
                         </tr>
                       ))}
                     </tbody>
@@ -225,9 +219,9 @@ function Metric({
     <article className="metric-card dashboard-card">
       <div className="metric-main">
         <span className={`soft-icon ${tone}`}><Icon name={icon} /></span>
-        <div><p>{label}</p><strong>{value}</strong></div>
+        <div className="metric-copy"><p>{label}</p><small>{detail}</small></div>
+        <strong className="metric-value">{value}</strong>
       </div>
-      <small>{detail}</small>
     </article>
   )
 }

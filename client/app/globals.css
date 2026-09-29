@@ -752,6 +752,13 @@ select:focus-visible {
 .nav-link svg {
   flex: 0 0 auto;
 }
+.skillforge-mark {
+  box-sizing: border-box;
+  flex: none;
+  padding: 2px;
+  border: 2px solid currentColor;
+  border-radius: 5px;
+}
 .nav-link span {
   overflow: hidden;
   text-overflow: ellipsis;

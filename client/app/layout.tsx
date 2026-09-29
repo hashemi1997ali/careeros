@@ -8,9 +8,9 @@ export const metadata: Metadata = {
   title: { default: 'CareerOS | Career workspace', template: '%s | CareerOS' },
   description: 'Track your skills, projects and job applications, connect evidence, and find the gaps that matter.',
   icons: {
-    icon: '/images/careeros/brand-mark.png',
-    shortcut: '/images/careeros/brand-mark.png',
-    apple: '/images/careeros/brand-mark.png',
+    icon: [{ url: '/images/careeros/brand-mark.png', type: 'image/png' }],
+    shortcut: [{ url: '/images/careeros/brand-mark.png', type: 'image/png' }],
+    apple: [{ url: '/images/careeros/brand-mark.png', type: 'image/png' }],
   },
 }
 

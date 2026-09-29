@@ -26,7 +26,6 @@ import {
   Target,
   Trash2,
   UserRound,
-  Waypoints,
   X,
 } from 'lucide-react'
 
@@ -53,7 +52,6 @@ const icons = {
   search: Search,
   settings: Settings,
   share: Share2,
-  skillforge: Waypoints,
   sparkles: Sparkles,
   sun: Sun,
   target: Target,
@@ -62,9 +60,18 @@ const icons = {
   x: X,
 }
 
-export type IconName = keyof typeof icons
+export type IconName = keyof typeof icons | 'skillforge'
 
 export function Icon({ name, size = 20, className }: { name: IconName; size?: number; className?: string }) {
+  if (name === 'skillforge') {
+    return <svg aria-hidden="true" focusable="false" className={`skillforge-mark ${className ?? ''}`.trim()} width={size} height={size} viewBox="0 0 10 16" fill="none">
+      <g stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M5 15V4" />
+        <path d="M1 1l4 5" />
+        <path d="M9 1 5 6" />
+      </g>
+    </svg>
+  }
   const Glyph = icons[name]
   return <Glyph aria-hidden="true" focusable="false" size={size} strokeWidth={1.8} className={className} />
 }

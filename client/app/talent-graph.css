@@ -50,6 +50,44 @@
 @media(max-width:900px){.talent-explorer-grid{grid-template-columns:minmax(0,1fr)}.talent-inspector{border-left:0;border-top:1px solid var(--line)}.talent-skill-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.talent-canvas{height:520px}}
 @media(max-width:520px){.talent-explorer{border-radius:16px}.talent-explorer-bar{padding:16px}.talent-scene-meta{gap:10px}.talent-scene-meta>span:last-child{width:100%;padding-left:18px}.talent-canvas{height:420px}.talent-stage-caption{top:18px;left:16px;right:16px}.talent-stage-footer,.talent-edge-key{padding-left:16px;padding-right:16px}.talent-stage-footer{gap:8px}.talent-stage-footer p>span{display:none}.talent-inspector{padding:16px}.talent-inspector .inline-search input{font-size:16px}.talent-skill-list{display:flex;max-height:300px}.talent-skill-list .level-pill{font-size:11px}.talent-page-actions{width:100%}.talent-page-actions .button{flex:1}.talent-motion-toggle{min-width:44px;min-height:44px}}
 
+/* Skill Core: category list, responsive fixed panel and selection details. */
+.talent-explorer-bar{display:none}
+.talent-explorer-grid{grid-template-columns:minmax(0,1fr) 330px;align-items:stretch}
+.talent-stage{min-height:640px}
+.talent-stage-caption{top:20px;left:24px;right:24px;gap:4px}
+.talent-stage-caption strong{color:var(--ink);font-size:13px;font-weight:650}
+.talent-stage-caption>span:last-child{font-size:12px}
+.talent-canvas{height:auto;min-height:0;flex:1 1 auto}
+.talent-inspector{height:640px;min-height:0;gap:10px;padding:16px;border-left:1px solid var(--line);border-top:0}
+.talent-inspector-heading{flex:none}
+.talent-inspector-heading h2{font-size:16px}
+.talent-inspector .talent-category-search{box-sizing:border-box;flex:none;height:40px;min-height:40px;max-height:40px;gap:9px;padding:0 10px;border-radius:9px}
+.talent-inspector .talent-category-search input{box-sizing:border-box;min-height:0;height:100%;padding:0;font-size:13px;line-height:1.2}
+.talent-inspector-summary{flex:none;font-size:11px}
+.talent-category-list-frame{position:relative;flex:1 1 auto;min-height:120px;overflow:hidden;isolation:isolate}
+.talent-category-list-frame::before,.talent-category-list-frame::after{content:"";position:absolute;z-index:2;left:0;right:0;height:18px;pointer-events:none;transition:opacity .12s ease}
+.talent-category-list-frame::before{top:0;background:linear-gradient(to bottom,var(--surface),transparent)}
+.talent-category-list-frame::after{bottom:0;background:linear-gradient(to top,var(--surface),transparent)}
+.talent-category-list-frame.is-at-top::before,.talent-category-list-frame.is-at-bottom::after{opacity:0}
+.talent-category-list{display:flex;flex-direction:column;gap:6px;width:100%;height:100%;min-height:0;max-height:none;padding:2px 5px 2px 2px;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.talent-category-list>button{flex:0 0 62px;min-height:62px;gap:8px;padding:8px 10px;border-radius:12px;text-align:left}
+.talent-category-list>button>span:nth-child(2){display:block;min-width:0;flex:1}
+.talent-category-list>button strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.talent-category-list>button small{margin-top:3px;color:var(--muted);font-size:10px;line-height:1.2}
+.talent-selected{box-sizing:border-box;flex:0 0 150px;height:150px;min-height:150px;display:flex;flex-direction:column;justify-content:flex-start;gap:8px;margin-top:0;padding:13px;border-radius:12px;overflow:hidden}
+.talent-selected-main{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:7px;min-width:0}
+.talent-selected h3{min-width:0;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;font-weight:600}
+.talent-selected .level-pill,.talent-selected .talent-category-count{flex:none}
+.talent-selected .talent-category-count{color:var(--muted);font-size:11px}
+.talent-selected-category-skills,.talent-selected-description{display:-webkit-box;max-height:2.9em;margin:0;overflow:hidden;color:var(--muted);font-size:11px;line-height:1.45;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+.talent-selected-link{display:flex;align-items:center;justify-content:center;gap:7px;min-height:38px;margin-top:auto;padding-top:8px;border-top:1px solid var(--line);color:var(--ink);font-size:12px;font-weight:600;text-decoration:none}
+.talent-selected-link:hover{color:var(--blue)}
+.talent-motion-note{padding:0 16px 12px}
+@media(max-width:1250px){.talent-explorer-grid{grid-template-columns:minmax(0,1fr)}.talent-inspector{height:570px;border:0;border-top:1px solid var(--line)}.talent-category-list{display:flex;grid-template-columns:none}.talent-stage{min-height:580px}}
+@media(max-width:900px){.talent-explorer-grid{grid-template-columns:minmax(0,1fr)}.talent-inspector{height:570px}.talent-stage{min-height:540px}}
+@media(max-width:520px){.talent-inspector{height:540px;min-height:540px;padding:14px}.talent-category-list{display:flex;max-height:none}.talent-category-list>button{flex-basis:58px;min-height:58px}.talent-selected{flex-basis:142px;height:142px;min-height:142px}.talent-stage{min-height:480px}.talent-canvas{height:auto}}
+@media(max-width:520px){.talent-inspector .talent-category-search input{font-size:16px}}
+
 /* The profile card is folded into a single, larger dashboard graph. */
 .dashboard-grid>.graph-panel{grid-column:span 6}
 @media(max-width:1399px){.dashboard-grid>.graph-panel{grid-column:span 12}}

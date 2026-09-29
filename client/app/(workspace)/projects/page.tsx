@@ -197,7 +197,7 @@ export default function ProjectsPage() {
           <article className="project-card" key={project.id}>
             <div className={`project-art project-preview art-${index % 3}`}>
               {project.liveUrl && <iframe className="project-live-preview" src={project.liveUrl} title={`${project.title} live preview`} loading="lazy" scrolling="no" tabIndex={-1} />}
-              {!project.liveUrl && <Icon name="folder" size={32} />}
+              {!project.liveUrl && <div className="project-no-preview"><Icon name="folder" size={25} /><span>No live preview</span></div>}
               {project.liveUrl && <a className="project-live-link" href={project.liveUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open ${project.title} live site`} title="Open live site"><Icon name="external" size={17} /></a>}
             </div>
             <div className="project-information">
@@ -205,7 +205,7 @@ export default function ProjectsPage() {
                 <h2>{project.title}</h2>
                 <small className="project-period">{formatProjectPeriod(project.startDate, project.endDate)}</small>
                 <p>{project.description}</p>
-                <ul>{project.skills.map(skill => <li key={skill.id}>{skill.name}</li>)}</ul>
+                <ul>{project.skills.slice(0, 3).map(skill => <li key={skill.id} title={skill.name}>{skill.name}</li>)}{project.skills.length > 3 && <li className="project-more-skills">+{project.skills.length - 3} more{project.skills.length === 4 ? ' skill' : ' skills'}</li>}</ul>
               </div>
               <div className="project-actions">
                 <div className="project-link-row">

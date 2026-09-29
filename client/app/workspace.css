@@ -9,6 +9,17 @@
   position: fixed; z-index: -1; inset: 0; pointer-events: none; overflow: hidden;
   background: var(--canvas);
 }
+.career-grid-background { background-color: var(--career-canvas); background-image: none; mask-image: none; }
+.workspace-landscape.career-grid-background::before { display: none; }
+.workspace-landscape.career-grid-background::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-size: 40px 40px;
+  background-image: linear-gradient(to right, rgb(62 86 160 / .055) 1px, transparent 1px), linear-gradient(to bottom, rgb(62 86 160 / .055) 1px, transparent 1px);
+  mask-image: linear-gradient(to bottom, #000 30%, transparent 100%);
+}
+:root[data-theme="dark"] .workspace-landscape.career-grid-background::after {
+  background-image: linear-gradient(to right, rgb(176 193 255 / .055) 1px, transparent 1px), linear-gradient(to bottom, rgb(176 193 255 / .055) 1px, transparent 1px);
+}
 .workspace-landscape::before {
   content: ""; position: absolute; inset: 22% 0 0;
   background: url('/images/landing/alpine-hero.webp') 68% bottom / cover no-repeat;
@@ -27,13 +38,33 @@
 }
 .app-shell .app-main { position: relative; padding-bottom: 64px; }
 .app-shell .topbar {
-  height: 60px; margin: 16px auto 0; min-height: 60px; padding: 6px 10px 6px 23px; gap: 22px;
-  border: 1px solid color-mix(in srgb, var(--line) 78%, transparent); border-radius: 999px;
-  background: color-mix(in srgb, var(--surface) 78%, transparent);
-  box-shadow: 0 10px 32px rgb(20 32 28 / .09); backdrop-filter: blur(22px);
+  position: sticky; top: var(--career-header-offset); width: var(--career-header-width); min-width: var(--career-header-width); max-width: var(--career-header-width);
+  height: 60px; margin: var(--career-header-offset) auto 0; min-height: 60px; padding-inline: 8px;
 }
-.app-shell .global-search-trigger { width: 320px; min-width: 0; max-width: 320px; flex: 0 1 320px; border: 0; background: transparent; }
-.app-shell .global-search-trigger:hover { box-shadow: none; background: color-mix(in srgb, var(--ink) 5%, transparent); }
+.app-shell .topbar.career-header-surface {
+  border-color: var(--career-header-border);
+  color: var(--career-header-ink);
+  background: color-mix(in srgb, var(--career-header-bg) 78%, transparent);
+  box-shadow: var(--career-header-shadow);
+  backdrop-filter: blur(22px);
+  transition: background-color .3s, box-shadow .3s;
+}
+.app-shell .topbar.career-header-surface[data-scrolled="true"] {
+  background: color-mix(in srgb, var(--career-header-bg) 91%, transparent);
+  box-shadow: var(--career-header-shadow-scrolled);
+}
+.app-shell .mobile-brand { display: none; }
+.career-header-surface .career-header-logo,.app-shell .career-header-surface .career-header-logo { width: auto; height: 44px; display: inline-flex; align-items: center; gap: 7px; flex: none; white-space: nowrap; color: var(--career-header-ink); font-size: 15px; font-weight: 750; letter-spacing: -.045em; line-height: 1; }
+.career-header-surface .career-header-logo .brand-mark { width: 25px; height: 25px; flex: none; object-fit: contain; }
+.career-header-surface .career-header-logo :is(.brand-name,.career-header-wordmark) { font-size: inherit; font-weight: inherit; letter-spacing: inherit; line-height: 1; }
+.app-shell .global-search-trigger { width: 320px; min-width: 0; max-width: 320px; flex: 0 1 320px; border: 0; background: transparent; box-shadow: none; color: var(--career-header-muted); }
+.app-shell .global-search-trigger:hover { border-color: transparent; box-shadow: none; background: transparent; }
+.app-shell .profile-button { border: 0; background: transparent; box-shadow: none; color: var(--career-header-muted); }
+.app-shell .profile-button:hover,
+.app-shell .profile-button[aria-expanded="true"] { border-color: transparent; background: transparent; box-shadow: none; }
+.app-shell .topbar .avatar-default { color: var(--blue); background: var(--blue-soft); }
+.app-shell .profile-copy strong { color: var(--career-header-ink); }
+.app-shell .profile-copy small { color: var(--career-header-muted); }
 .app-shell .mobile-brand { display: none; }
 .app-shell .page-heading { margin: 10px 0 28px; gap: 20px; align-items: center; }
 .app-shell .page-heading h1 { font-size: clamp(28px, 3vw, 40px); line-height: 1.2; letter-spacing: -.04em; font-weight: 600; }
@@ -49,9 +80,8 @@
 .app-shell .dashboard-grid > .panel { padding: 22px; }
 .app-shell .dashboard-summary { gap: 18px; }
 .app-shell .dashboard-summary > .metric-card { padding: 22px; }
-.app-shell .dashboard-summary > .metric-card .metric-main strong { font-size: 38px; font-weight: 600; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.app-shell .dashboard-summary > .metric-card .metric-main strong { font-size: 28px; font-weight: 600; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
 .app-shell .metric-main p { color: var(--muted); font-size: 12px; }
-.app-shell .dashboard-summary > .metric-card > small { max-width: none; text-align: left; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); }
 .app-shell .soft-icon { background: transparent; box-shadow: none; border-radius: 0; color: var(--muted); }
 .app-shell .panel-title h2 { font-size: 15px; font-weight: 600; letter-spacing: -.025em; }
 .app-shell .panel-heading { gap: 14px; }
@@ -67,7 +97,7 @@
 .app-shell .data-table td { padding-top: 18px; padding-bottom: 18px; font-size: 12px; border-color: var(--line); }
 .app-shell .data-table tbody tr:hover { background: var(--surface-soft); }
 .app-shell .compact-metrics { gap: 14px; }
-.app-shell .compact-metrics article { padding: 20px; }
+.app-shell .compact-metrics article { min-width: 0; padding: 16px; gap: 10px; }
 .app-shell .compact-metrics strong { font-weight: 600; font-variant-numeric: tabular-nums; }
 
 /* One native selector for each filter, at every viewport size. */
@@ -107,6 +137,13 @@
   filter: grayscale(1);
 }
 .app-shell .project-art:not(:has(iframe)) > svg { color: #fff; padding: 10px; width: 52px; height: 52px; border-radius: 12px; background: rgb(0 0 0 / .6); }
+.app-shell .project-art:not(:has(iframe)) > .project-no-preview {
+  position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 13px 17px; border: 1px solid rgb(255 255 255 / .22); border-radius: 14px;
+  background: rgb(12 16 20 / .58); color: #fff; backdrop-filter: blur(8px);
+}
+.app-shell .project-no-preview > svg { width: 25px; height: 25px; color: #fff; }
+.app-shell .project-no-preview > span { position: static; color: inherit; font-size: 11px; font-weight: 600; }
 .app-shell .project-information { min-width: 0; padding: 24px; display: flex; flex-direction: column; gap: 18px; }
 .app-shell .project-actions { align-self: stretch; margin-top: auto; }
 .app-shell .project-link-row { flex-wrap: wrap; }
@@ -146,8 +183,8 @@
 
 @media (max-width: 1023px) {
   .app-shell .topbar {
-    width: var(--mobile-chrome-width, calc(100vw - 24px)); height: 60px; margin: 16px auto 0; min-height: 60px;
-    padding: 6px 10px 6px 23px; gap: clamp(8px, 2.5vw, 22px); border-radius: 999px;
+    width: var(--career-mobile-chrome-width); min-width: 0; max-width: none;
+    height: 60px; margin: var(--career-header-offset) 0 0 var(--career-mobile-gutter); min-height: 60px;
     justify-content: flex-start;
   }
   .app-shell .topbar .mobile-brand { display: block; flex: 0 0 auto; }
@@ -165,12 +202,99 @@
   .app-shell .topbar .mobile-brand .brand-name { font-size: 15px; font-weight: 750; letter-spacing: -.045em; }
   .app-shell .dashboard-grid > .panel { padding: 20px; }
 }
+@media(max-width:420px){.career-header-surface .career-header-logo,.app-shell .career-header-surface .career-header-logo{gap:4px;font-size:13px}.career-header-surface .career-header-logo .brand-mark{width:22px;height:22px}}
 @media (max-width: 760px) {
-  .app-shell .topbar { height: 54px; min-height: 54px; margin-top: 12px; padding: 4px 8px 4px 17px; border-radius: 999px; }
+  .app-shell .topbar { height: 54px; min-height: 54px; }
   .app-shell .topbar .profile-button { height: 44px; min-height: 44px; padding: 3px; }
 }
+
+/* Dashboard and application statistics share one compact icon, copy and value layout. */
+.app-shell .dashboard-summary > .metric-card {
+  min-width: 0;
+  min-height: 96px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.app-shell .dashboard-summary > .metric-card .metric-main {
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: flex-start;
+  gap: 10px;
+}
+.app-shell .dashboard-summary > .metric-card .soft-icon,
+.app-shell .compact-metrics .soft-icon {
+  display: grid;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  place-items: center;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  color: var(--ink);
+  background: var(--surface-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--line) 45%, transparent);
+}
+.app-shell .metric-copy { min-width: 0; flex: 1 1 auto; }
+.app-shell .dashboard-summary .metric-copy p,
+.app-shell .compact-metrics .metric-copy p {
+  margin: 1px 0 3px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: left;
+}
+.app-shell .dashboard-summary .metric-copy small,
+.app-shell .compact-metrics .metric-copy small {
+  display: block;
+  max-width: 22ch;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: left;
+}
+.app-shell .dashboard-summary .metric-value,
+.app-shell .compact-metrics .metric-value {
+  align-self: center;
+  flex: 0 0 auto;
+  margin: 0 0 0 auto;
+  color: var(--ink);
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.1;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.app-shell .compact-metrics article {
+  min-height: 88px;
+  align-items: center;
+}
+.app-shell .compact-metrics .metric-value { font-size: 25px; }
+@media (max-width: 760px) {
+  .app-shell .dashboard-summary > .metric-card { min-height: 88px; padding: 12px; }
+  .app-shell .dashboard-summary > .metric-card .metric-main { gap: 8px; }
+  .app-shell .compact-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .app-shell .compact-metrics article { min-height: 84px; padding: 12px; gap: 6px; }
+  .app-shell .compact-metrics .soft-icon { flex-basis: 40px; width: 40px; height: 40px; min-width: 40px; min-height: 40px; }
+  .app-shell .compact-metrics .metric-copy p { font-size: 11px; }
+  .app-shell .compact-metrics .metric-copy small { font-size: 9px; }
+  .app-shell .compact-metrics .metric-value { font-size: 22px; }
+}
+@media (min-width: 1024px) {
+  .app-shell .topbar { margin: var(--career-header-offset) 0 0 max(20px, calc(50vw - var(--career-header-half-width) - var(--sidebar-width))); }
+  .app-shell .topbar .mobile-brand { display: none; }
+  .app-shell .topbar .global-search-trigger { width: 320px; max-width: 320px; flex: 0 1 320px; }
+  .app-shell .topbar .topbar-actions { margin-left: auto; }
+  .app-shell .topbar .profile-button { flex: 0 0 250px; width: 250px; }
+}
 @media (max-width: 600px) {
-  .app-shell .page-heading { margin: 14px 0 22px; align-items: flex-start; }
+  .app-shell .page-heading { margin: 14px 0 22px; align-items: flex-start; text-align: left; }
   .app-shell .page-heading h1 { font-size: 30px; }
   .app-shell .collection-controls { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .app-shell .collection-controls > * { width: 100%; }
@@ -185,22 +309,44 @@
   .modal-layer .dialog-content { padding: 20px; }
   .modal-layer .dialog-footer { padding: 16px 20px; }
 }
+
+@media (min-width: 761px) and (max-width: 1100px) {
+  .app-shell .page-heading { align-items: flex-start; text-align: left; }
+  .app-shell .page-heading > div { min-width: 0; text-align: left; }
+  .app-shell .collection-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(170px, max-content) minmax(170px, max-content);
+    align-items: center;
+  }
+  .app-shell .collection-controls > * { min-width: 0; }
+  .app-shell .collection-filter select,
+  .app-shell .collection-sort select { min-width: 0; max-width: 190px; }
+}
+
+@media (max-width: 760px) {
+  .app-shell .page-heading,
+  .app-shell .page-heading > div { text-align: left; }
+  .app-shell .page-heading > div { width: 100%; align-self: flex-start; }
+  .app-shell .collection-controls { grid-template-columns: minmax(0, 1fr); }
+  .app-shell .collection-filter,
+  .app-shell .collection-sort { justify-content: space-between; }
+}
+
+@media (max-width: 1023px) {
+  .app-shell .app-main { width: 100vw; padding-inline: var(--career-mobile-gutter); }
+  .app-shell .mobile-nav {
+    left: var(--career-mobile-gutter);
+    right: auto;
+    width: var(--career-mobile-chrome-width);
+    bottom: calc(var(--career-mobile-gutter) + env(safe-area-inset-bottom));
+    transform: none;
+  }
+}
 @media (max-width: 420px) {
-  .app-shell .topbar { padding: 4px 6px 4px 13px; gap: 9px; }
+  .app-shell .topbar { padding: 4px 8px; gap: 9px; }
   .app-shell .topbar .mobile-brand .brand { gap: 4px; font-size: 13px; }
   .app-shell .topbar .mobile-brand .brand-mark { width: 22px; height: 22px; }
   .app-shell .topbar .mobile-brand .brand-name { font-size: 13px; }
-}
-@media (min-width: 1024px) {
-  .app-shell .topbar {
-    width: min(900px, calc(100vw - var(--sidebar-width) - var(--sidebar-width) - 48px));
-    margin: 16px auto 0; transform: translateX(-121px);
-    transition: transform .28s ease, width .28s ease;
-  }
-  .app-shell[data-collapsed="true"] .topbar { transform: translateX(-38px); }
-  .app-shell .topbar .mobile-brand { display: none; }
-  .app-shell .topbar .global-search-trigger { width: 320px; max-width: 320px; flex: 0 1 320px; }
-  .app-shell .topbar .profile-button { flex: 0 0 250px; width: 250px; }
 }
 @media (prefers-reduced-motion: reduce) { .workspace-mist { animation: none; } }
 
@@ -227,6 +373,30 @@
 .app-shell .soft-icon.teal { color: var(--teal); background: color-mix(in srgb, var(--teal) 11%, var(--surface)); }
 .app-shell .soft-icon.violet { color: var(--violet); background: color-mix(in srgb, var(--violet) 11%, var(--surface)); }
 .app-shell .soft-icon.amber { color: var(--amber); background: color-mix(in srgb, var(--amber) 12%, var(--surface)); }
+.app-shell .dashboard-summary .soft-icon,
+.app-shell .compact-metrics .soft-icon {
+  border: 0;
+  border-radius: 11px;
+  color: var(--blue);
+  background: var(--blue-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--blue) 13%, transparent);
+}
+.app-shell .dashboard-summary .metric-copy p,
+.app-shell .compact-metrics .metric-copy p {
+  font-size: 15px;
+  line-height: 1.35;
+}
+.app-shell .dashboard-summary .metric-copy small,
+.app-shell .compact-metrics .metric-copy small {
+  font-size: 12px;
+  line-height: 1.6;
+}
+@media (max-width: 760px) {
+  .app-shell .dashboard-summary .metric-copy p,
+  .app-shell .compact-metrics .metric-copy p { font-size: 12px; }
+  .app-shell .dashboard-summary .metric-copy small,
+  .app-shell .compact-metrics .metric-copy small { font-size: 10px; }
+}
 .app-shell .text-link { color: var(--blue); }
 .app-shell .button-primary, .modal-layer .button-primary { color: #fff; background: var(--blue); }
 .app-shell .button-primary:hover:not(:disabled), .modal-layer .button-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--blue) 84%, #263a91); }
@@ -236,3 +406,455 @@
 .app-shell :focus-visible, .modal-layer :focus-visible { outline-color: var(--blue); }
 .app-shell .talent-core { fill: color-mix(in srgb, var(--teal) 76%, var(--surface)); stroke: color-mix(in srgb, var(--teal) 62%, var(--surface)); filter: drop-shadow(0 5px 12px color-mix(in srgb, var(--teal) 20%, transparent)); }
 .app-shell .talent-core-halo { fill: color-mix(in srgb, var(--teal) 12%, transparent); stroke: color-mix(in srgb, var(--teal) 28%, transparent); }
+
+/* Keep collection cards steady when names, descriptions or linked items run long. */
+.app-shell .skill-card {
+  height: 296px;
+  min-height: 296px;
+}
+
+.app-shell .project-card {
+  height: 250px;
+  min-height: 250px;
+  grid-template-rows: minmax(0, 1fr);
+}
+.app-shell .project-art {
+  height: 100%;
+  min-height: 0;
+  aspect-ratio: auto;
+}
+.app-shell .project-information {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  gap: 8px;
+  padding: 16px;
+}
+.app-shell .project-copy {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.app-shell .project-copy h2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.app-shell .project-copy > .project-period {
+  flex: 0 0 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-shell .project-copy > p {
+  flex: 0 0 auto;
+  margin-bottom: 10px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.app-shell .project-copy ul {
+  flex: 0 0 auto;
+  max-height: 28px;
+  overflow: hidden;
+  flex-wrap: nowrap;
+}
+.app-shell .project-copy li {
+  min-width: 0;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: transparent;
+}
+.app-shell .project-more-skills {
+  flex: 0 0 auto;
+  max-width: none !important;
+  color: var(--blue) !important;
+  border-style: dashed !important;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.app-shell .application-table tbody tr {
+  height: 78px;
+}
+
+@media (max-width: 760px) {
+  .app-shell .project-card {
+    height: auto;
+    min-height: 0;
+  }
+  .app-shell .project-art {
+    height: 170px;
+    min-height: 170px;
+    flex: 0 0 170px;
+  }
+  .app-shell .project-information {
+    height: auto;
+    min-height: 0;
+    flex: 0 0 auto;
+    overflow: visible;
+    padding: 16px;
+  }
+  .app-shell .project-copy {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+  .app-shell .project-copy ul {
+    max-height: none;
+    overflow: visible;
+    flex-wrap: wrap;
+  }
+  .app-shell .project-copy > p {
+    margin-top: 6px;
+    margin-bottom: 6px;
+    -webkit-line-clamp: 1;
+  }
+  .app-shell .project-actions {
+    flex: 0 0 auto;
+    margin-top: 8px;
+  }
+  .app-shell .application-table tbody tr {
+    height: 326px;
+  }
+}
+
+/* Restore the skills cards and the application table/card layouts. */
+.app-shell .skill-card {
+  min-width: 0;
+  min-height: 270px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+}
+.app-shell .skill-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.app-shell .skill-card-title { min-width: 0; flex: 1 1 auto; }
+.app-shell .skill-card-title h2 {
+  display: -webkit-box;
+  height: 2.8em;
+  max-height: 2.8em;
+  margin: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.app-shell .skill-card-heading > .level-pill { flex: 0 0 auto; }
+.app-shell .skill-card-category,
+.app-shell .skill-card-field { display: grid; align-content: start; gap: 2px; min-width: 0; }
+.app-shell .skill-card-label { display: block; color: var(--muted); font-size: 11px; font-weight: 500; line-height: 1.35; }
+.app-shell .skill-card-value {
+  display: -webkit-box;
+  height: 2.8em;
+  max-height: 2.8em;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.app-shell .skill-card-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.app-shell .skill-card-project-count { padding-top: 15px; }
+.app-shell .skill-card-footer { display: flex; align-items: center; justify-content: flex-end; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line); }
+.app-shell .skill-card-footer .card-actions,
+.app-shell .project-link-row { display: flex; flex-direction: row; direction: rtl; align-items: center; justify-content: flex-start; gap: 10px; }
+.app-shell .skill-card-footer .card-actions button,
+.app-shell .project-link-row > *,
+.app-shell .application-action-list > * {
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 8px;
+}
+.app-shell .skill-detail-meta > div { min-width: 0; }
+.app-shell .skill-detail-projects { margin-top: 22px; }
+.app-shell .skill-detail-projects h3 { margin: 0 0 12px; }
+.app-shell .skill-detail-projects ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.app-shell .skill-detail-projects li { padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-soft); }
+
+.app-shell .resource-table-panel { min-width: 0; }
+.app-shell .application-table {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.app-shell .application-table table { width: 100%; min-width: 0; table-layout: fixed; }
+.app-shell .application-table th,
+.app-shell .application-table td { box-sizing: border-box; min-width: 0; padding: 10px 8px; }
+.app-shell .application-table th:nth-child(1) { width: 14%; }
+.app-shell .application-table th:nth-child(2) { width: 16%; }
+.app-shell .application-table th:nth-child(3) { width: 15%; }
+.app-shell .application-table th:nth-child(4) { width: 13%; }
+.app-shell .application-table th:nth-child(5),
+.app-shell .application-table th:nth-child(6) { width: 10%; }
+.app-shell .application-table th:nth-child(7) { width: 22%; text-align: right; }
+.app-shell .application-table tbody tr { height: 72px; }
+.app-shell .application-table tbody td[data-label="Company"] strong,
+.app-shell .application-table tbody td[data-label="Role"] .application-role,
+.app-shell .application-table tbody td[data-label="Location"] > span {
+  display: -webkit-box;
+  max-height: 2.8em;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.app-shell .application-table tbody td[data-label="Applied"],
+.app-shell .application-table tbody td[data-label="Interview"] { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.app-shell .application-table tbody td[data-label="Status"] { text-align: left; }
+/* Karino-inspired shared badges: soft tint and fine outline. */
+.app-shell .status-pill,
+.app-shell .level-pill,
+.modal-layer .status-pill,
+.modal-layer .level-pill {
+  min-height: 26px;
+  padding: 4px 9px;
+  border: 1px solid color-mix(in srgb, var(--badge-tone) 24%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--badge-tone) 10%, var(--surface));
+  color: var(--badge-text);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+.app-shell .status-pill.Saved,.modal-layer .status-pill.Saved { --badge-tone: #7b8796; --badge-text: #596574; }
+.app-shell .status-pill.Applied,.modal-layer .status-pill.Applied { --badge-tone: #3979dc; --badge-text: #2459a8; }
+.app-shell .status-pill.HrInterview,.app-shell .status-pill.TechnicalInterview,
+.modal-layer .status-pill.HrInterview,.modal-layer .status-pill.TechnicalInterview { --badge-tone: #895bd5; --badge-text: #6541a7; }
+.app-shell .status-pill.Offer,.modal-layer .status-pill.Offer { --badge-tone: #229475; --badge-text: #14735a; }
+.app-shell .status-pill.Rejected,.app-shell .status-pill.Withdrawn,
+.modal-layer .status-pill.Rejected,.modal-layer .status-pill.Withdrawn { --badge-tone: #d95767; --badge-text: #b73c4d; }
+.app-shell .level-pill.Beginner,.modal-layer .level-pill.Beginner { --badge-tone: #d58b2c; --badge-text: #a35e0c; }
+.app-shell .level-pill.Intermediate,.modal-layer .level-pill.Intermediate { --badge-tone: #3979dc; --badge-text: #2459a8; }
+.app-shell .level-pill.Advanced,.modal-layer .level-pill.Advanced { --badge-tone: #229475; --badge-text: #14735a; }
+:root[data-theme="dark"] .app-shell .status-pill.Saved,:root[data-theme="dark"] .modal-layer .status-pill.Saved { --badge-text: #c1cede; }
+:root[data-theme="dark"] .app-shell .status-pill.Applied,:root[data-theme="dark"] .modal-layer .status-pill.Applied { --badge-text: #9bc0ff; }
+:root[data-theme="dark"] .app-shell .status-pill.HrInterview,:root[data-theme="dark"] .app-shell .status-pill.TechnicalInterview,
+:root[data-theme="dark"] .modal-layer .status-pill.HrInterview,:root[data-theme="dark"] .modal-layer .status-pill.TechnicalInterview { --badge-text: #c7b2ff; }
+:root[data-theme="dark"] .app-shell .status-pill.Offer,:root[data-theme="dark"] .modal-layer .status-pill.Offer { --badge-text: #8be0c5; }
+:root[data-theme="dark"] .app-shell .status-pill.Rejected,:root[data-theme="dark"] .app-shell .status-pill.Withdrawn,
+:root[data-theme="dark"] .modal-layer .status-pill.Rejected,:root[data-theme="dark"] .modal-layer .status-pill.Withdrawn { --badge-text: #ffadba; }
+:root[data-theme="dark"] .app-shell .level-pill.Beginner,:root[data-theme="dark"] .modal-layer .level-pill.Beginner { --badge-text: #ffd092; }
+:root[data-theme="dark"] .app-shell .level-pill.Intermediate,:root[data-theme="dark"] .modal-layer .level-pill.Intermediate { --badge-text: #a9c9ff; }
+:root[data-theme="dark"] .app-shell .level-pill.Advanced,:root[data-theme="dark"] .modal-layer .level-pill.Advanced { --badge-text: #9ae9cf; }
+.app-shell .application-list-panel {
+  min-width: 0;
+  margin-top: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.app-shell .application-list-panel > .application-table {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.app-shell .application-list-panel > .table-scroll-hint { display: none; }
+.app-shell .application-table .row-actions { min-width: 0; padding-inline: 8px; text-align: right; }
+.app-shell .application-action-list { display: flex; flex-direction: row; direction: rtl; align-items: center; justify-content: flex-start; gap: 8px; width: 100%; }
+.app-shell .application-action-list > * { flex: 0 0 44px; text-decoration: none; }
+.app-shell .table-scroll-hint { display: none; }
+.app-shell .project-art:not(:has(iframe)) > svg { color: #fff; }
+
+.modal-layer > .command-panel {
+  width: min(100%, 720px);
+  max-height: calc(100dvh - 48px);
+}
+@media (max-width: 640px) {
+  .modal-layer > .command-panel {
+    width: 100%;
+    max-height: calc(100dvh - 24px);
+  }
+}
+
+/* Shared sizing for status and skill level badges across lists, cards and modals. */
+.app-shell .status-pill,
+.app-shell .level-pill,
+.modal-layer .status-pill,
+.modal-layer .level-pill,
+.talent-skill-list .level-pill {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: max-content;
+  max-width: 100%;
+  min-height: 26px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+@media (max-width: 1023px) {
+  .app-shell .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .app-shell .card-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 1279px) {
+  .app-shell .application-table { overflow: visible; border: 0; border-radius: 0; }
+  .app-shell .application-list-panel,
+  .app-shell .application-list-panel > .application-table,
+  .app-shell .application-table table,
+  .app-shell .application-table tbody { background: transparent; }
+  .app-shell .application-list-panel > .application-table { border: 0; }
+  .app-shell .application-table table { display: block; min-width: 0; }
+  .app-shell .application-table thead { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  .app-shell .application-table tbody { display: grid; gap: 14px; }
+  .app-shell .application-table tbody tr {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: 60px 58px 58px 48px 52px;
+    gap: 6px 10px;
+    box-sizing: border-box;
+    width: 100%;
+    height: 326px;
+    padding: 12px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+  }
+  .app-shell .application-table tbody td:nth-child(n) {
+    display: grid;
+    align-content: center;
+    min-width: 0;
+    max-width: none;
+    width: auto;
+    height: auto;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+    font-size: 13px;
+    white-space: normal;
+  }
+  .app-shell .application-table tbody td::before { display: block; margin-bottom: 2px; color: var(--muted); content: attr(data-label); font-size: 11px; line-height: 1.3; }
+  .app-shell .application-table tbody td[data-label="Company"] { grid-column: 1; grid-row: 1; }
+  .app-shell .application-table tbody td[data-label="Status"] { grid-column: 2; grid-row: 1; justify-self: end; align-self: start; display: block; text-align: right; }
+  .app-shell .application-table tbody td[data-label="Status"]::before { content: none; }
+  .app-shell .application-table tbody td[data-label="Role"] { grid-column: 1 / -1; grid-row: 2; }
+  .app-shell .application-table tbody td[data-label="Location"] { grid-column: 1 / -1; grid-row: 3; }
+  .app-shell .application-table tbody td[data-label="Applied"] { grid-column: 1; grid-row: 4; }
+  .app-shell .application-table tbody td[data-label="Interview"] {
+    grid-column: 2;
+    grid-row: 4;
+    text-align: left;
+  }
+  .app-shell .application-table tbody td[data-label="Actions"] {
+    display: flex;
+    grid-column: 1 / -1;
+    grid-row: 5;
+    align-items: center;
+    justify-content: flex-end;
+    width: auto;
+    min-height: 0;
+    padding-top: 8px;
+    overflow: visible;
+    border-top: 1px solid var(--line);
+  }
+  .app-shell .application-table tbody td[data-label="Actions"]::before { content: none; }
+  .app-shell .application-table .application-action-list { justify-content: flex-start; width: auto; margin-left: auto; }
+  .app-shell .application-table tbody td[data-label="Applied"],
+  .app-shell .application-table tbody td[data-label="Interview"] { white-space: nowrap; }
+}
+
+@media (max-width: 760px) {
+  .app-shell .project-art { min-height: 170px; height: 170px; aspect-ratio: auto; }
+  .app-shell .skill-card { min-height: 260px; padding: 18px; }
+}
+
+.dashboard-grid .applications-panel .dashboard-list-slot { min-width: 0; overflow: hidden; }
+.dashboard-grid .applications-panel .dashboard-applications-table {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.dashboard-grid .applications-panel .dashboard-applications-table table { width: 100%; min-width: 0; table-layout: fixed; }
+.dashboard-grid .applications-panel .dashboard-applications-table th,
+.dashboard-grid .applications-panel .dashboard-applications-table td { box-sizing: border-box; min-width: 0; padding: 8px 10px; overflow: hidden; }
+.dashboard-grid .applications-panel .dashboard-applications-table th:nth-child(1) { width: 24%; }
+.dashboard-grid .applications-panel .dashboard-applications-table th:nth-child(2) { width: 30%; }
+.dashboard-grid .applications-panel .dashboard-applications-table th:nth-child(3) { width: 24%; }
+.dashboard-grid .applications-panel .dashboard-applications-table th:nth-child(4) { width: 22%; }
+.dashboard-grid .applications-panel .dashboard-applications-table tbody tr { height: 68px; }
+.dashboard-grid .applications-panel .dashboard-applications-table td:not([data-label="Status"]) > * {
+  display: -webkit-box;
+  max-height: 2.8em;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.dashboard-grid .applications-panel .dashboard-applications-table .status-pill { max-width: 100%; white-space: nowrap; }
+
+@media (max-width: 760px) {
+  .dashboard-grid .applications-panel .dashboard-list-slot { height: auto; min-height: 0; overflow: visible; }
+  .dashboard-grid .applications-panel .dashboard-applications-table { overflow: visible; border: 0; border-radius: 0; }
+  .dashboard-grid .applications-panel .dashboard-applications-table table { display: block; }
+  .dashboard-grid .applications-panel .dashboard-applications-table thead { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  .dashboard-grid .applications-panel .dashboard-applications-table tbody { display: grid; gap: 10px; }
+  .dashboard-grid .applications-panel .dashboard-applications-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    grid-template-rows: 54px 54px 54px;
+    gap: 6px 10px;
+    box-sizing: border-box;
+    width: 100%;
+    height: 200px;
+    padding: 12px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+  }
+  .dashboard-grid .applications-panel .dashboard-applications-table tbody td:nth-child(n) {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: none;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+    font-size: 13px;
+    white-space: normal;
+  }
+  .dashboard-grid .applications-panel .dashboard-applications-table td::before { display: block; margin-bottom: 2px; color: var(--muted); content: attr(data-label); font-size: 11px; }
+  .dashboard-grid .applications-panel .dashboard-applications-table td[data-label="Company"] { grid-column: 1; grid-row: 1; }
+  .dashboard-grid .applications-panel .dashboard-applications-table td[data-label="Status"] { grid-column: 2; grid-row: 1; justify-self: end; white-space: nowrap; }
+  .dashboard-grid .applications-panel .dashboard-applications-table td[data-label="Status"]::before { content: none; }
+  .dashboard-grid .applications-panel .dashboard-applications-table td[data-label="Role"] { grid-column: 1 / -1; grid-row: 2; }
+  .dashboard-grid .applications-panel .dashboard-applications-table td[data-label="Location"] { grid-column: 1 / -1; grid-row: 3; }
+}

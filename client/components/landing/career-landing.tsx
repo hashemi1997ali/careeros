@@ -5,6 +5,7 @@ import styles from "@/app/landing.module.css";
 import { BrandMark } from "@/components/brand";
 import { Icon } from "@/components/icons";
 import { OraviaParticleField } from "@/components/landing/oravia-particle-field";
+import { headerScrollThreshold } from "@/lib/ui-chrome";
 
 const signup = "/auth/login?screen_hint=signup&returnTo=/dashboard";
 
@@ -56,7 +57,7 @@ function CareerGraph() {
         <path className={styles.graphLines} d="M250,180 L320,150"/>
         <path className={styles.graphSignal} d="M50,150 C100,150 100,80 150,80 C200,80 200,120 250,120 L320,150"/>
         <circle className={styles.nodeContext} cx="50" cy="150" r="6"/>
-        <text className={styles.graphCaption} x="50" y="175" textAnchor="middle">YOU</text>
+        <text className={styles.graphCaption} x="40" y="150" textAnchor="end" dominantBaseline="middle">YOU</text>
         <rect className={styles.nodeAssumptions} x="150" y="70" width="80" height="20" rx="4"/>
         <text className={styles.graphNodeLabel} x="190" y="83" textAnchor="middle">Skills</text>
         <rect className={styles.graphNodeSoft} x="150" y="210" width="80" height="20" rx="4"/>
@@ -67,7 +68,7 @@ function CareerGraph() {
         <text className={styles.graphNodeLabel} x="280" y="183" textAnchor="middle">Growth</text>
         <circle className={styles.nodeOutcome} cx="320" cy="150" r="12"/>
         <path className={styles.outcomeCheck} d="M316 150l3 3 5-5"/>
-        <text className={styles.graphCaption} x="320" y="210" textAnchor="middle">NEXT ROLE</text>
+        <text className={styles.graphCaption} x="340" y="150" textAnchor="start" dominantBaseline="middle">NEXT ROLE</text>
       </svg>
       <span className={styles.graphBadge}>Experience, with evidence <Arrow/></span>
     </div>
@@ -118,7 +119,7 @@ export function CareerLanding({ authenticated, fontClassName }: { authenticated:
     const update = () => {
       frame = 0;
       const height = window.innerHeight;
-      setScrolled(previous => previous === (window.scrollY > 50) ? previous : window.scrollY > 50);
+      setScrolled(previous => previous === (window.scrollY > headerScrollThreshold) ? previous : window.scrollY > headerScrollThreshold);
       reveals.forEach(element => {
         const rect = element.getBoundingClientRect();
         const entering = Math.max(0, Math.min(1, (height * 0.96 - rect.top) / (height * 0.22)));
@@ -193,7 +194,7 @@ export function CareerLanding({ authenticated, fontClassName }: { authenticated:
     <OraviaParticleField/>
     <a className={styles.skip} href="#main-content">Skip to content</a>
     <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ""}`}>
-      <div className={styles.headerInner}>
+      <div className={`${styles.headerInner} career-header-surface`} data-scrolled={scrolled ? "true" : "false"}>
         <a href="#top" aria-label="CareerOS home"><Logo/></a>
         <nav className={styles.desktopNav} aria-label="Main navigation">{nav}</nav>
         <div className={styles.headerActions}>

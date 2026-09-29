@@ -15,16 +15,16 @@ import type { Skill, SkillLevel, SkillSuggestion } from '@/components/types'
 const levels: SkillLevel[] = ['Beginner', 'Intermediate', 'Advanced']
 const today = new Date().toISOString().slice(0, 10)
 const formatExperience = (startDate: string | null) => {
-  if (!startDate) return 'Experience not set'
+  if (!startDate) return 'No start date'
   const start = new Date(`${startDate}T00:00:00`)
-  if (Number.isNaN(start.getTime())) return 'Experience not set'
+  if (Number.isNaN(start.getTime())) return 'No start date'
   const now = new Date()
   let months = (now.getFullYear() - start.getFullYear()) * 12 + now.getMonth() - start.getMonth()
   if (now.getDate() < start.getDate()) months -= 1
-  if (months < 1) return 'Less than 1 month'
-  if (months < 12) return `${months} month${months === 1 ? '' : 's'} experience`
+  if (months < 1) return 'Less than one month'
+  if (months < 12) return `${months} month${months === 1 ? '' : 's'}`
   const years = Math.floor(months / 12)
-  return `${years} year${years === 1 ? '' : 's'} experience`
+  return `${years} year${years === 1 ? '' : 's'}`
 }
 
 export default function SkillsPage() {
@@ -36,6 +36,8 @@ export default function SkillsPage() {
   const [search, setSearch] = useState(params.get('search') ?? '')
   const [open, setOpen] = useState(params.get('new') === '1')
   const [editing, setEditing] = useState<Skill | null>(null)
+  const [viewing, setViewing] = useState<Skill | null>(null)
+  const [viewingOpen, setViewingOpen] = useState(false)
   const [name, setName] = useState('')
   const [cat, setCat] = useState('')
   const [level, setLevel] = useState<SkillLevel>('Beginner')
@@ -53,7 +55,7 @@ export default function SkillsPage() {
   const skills = useMemo(() => q.data ?? [], [q.data])
 
   function openCreate() {
-    setEditing(null); setName(''); setCat(''); setLevel('Beginner'); setStartDate(''); setError(null); setOpen(true)
+    setViewing(null); setEditing(null); setName(''); setCat(''); setLevel('Beginner'); setStartDate(''); setError(null); setOpen(true)
   }
 
   useEffect(() => {
@@ -63,13 +65,29 @@ export default function SkillsPage() {
   }, [params])
 
   useEffect(() => {
-    if (open) return
-    const timer = window.setTimeout(() => setEditing(null), 300)
+    if (open || viewingOpen) return
+    const timer = window.setTimeout(() => { setEditing(null); setViewing(null) }, 300)
     return () => window.clearTimeout(timer)
-  }, [open])
+  }, [open, viewingOpen])
 
   function openEdit(skill: Skill) {
-    setEditing(skill); setName(skill.name); setCat(skill.category); setLevel(skill.level); setStartDate(skill.startDate ?? ''); setError(null); setOpen(true)
+    setViewing(null); setEditing(skill); setName(skill.name); setCat(skill.category); setLevel(skill.level); setStartDate(skill.startDate ?? ''); setError(null); setOpen(true)
+  }
+
+  function openDetails(skill: Skill) {
+    setViewing(skill)
+    setViewingOpen(true)
+  }
+
+  function closeDetails() {
+    setViewingOpen(false)
+  }
+
+  function editViewedSkill() {
+    if (!viewing) return
+    const skill = viewing
+    closeDetails()
+    window.setTimeout(() => openEdit(skill), 300)
   }
 
   function close() {
@@ -104,7 +122,22 @@ export default function SkillsPage() {
     <section className="page-heading"><div><p className="eyebrow">YOUR CAPABILITIES</p><h1>Skills</h1><p>Track your skills and evidence.</p></div><div className="talent-page-actions"><Link className="button button-ghost" href="/skills/graph"><Icon name="brain" size={17}/>Skill Core</Link><button className="button button-primary" type="button" onClick={openCreate}><Icon name="plus" />Add skill</button></div></section>
     <ResourceToolbar search={search} onSearch={setSearch} searchLabel="Search skills" filters={categories.map(value => ({value,label:value,count:value === 'All' ? skills.length : skills.filter(skill => skill.category === value).length}))} filter={category} onFilter={setCategory} sort={sort} onSort={setSort} sortOptions={[{value:'name',label:'Name A–Z'},{value:'level',label:'Highest proficiency'},{value:'evidence',label:'Most project evidence'}]} count={visible.length} total={skills.length} loading={q.isPending} onReset={search || category !== 'All' ? () => { setSearch(''); setCategory('All') } : undefined}/>
     {(q.error || listError) && <div className="error-banner" role="alert">{listError ?? q.error?.message}</div>}
-    {q.isPending ? <LoadingState cards label="Loading skills"/> : visible.length ? <section className="card-grid">{visible.map(skill => <article className="skill-card" key={skill.id}><div className="skill-card-head"><span className="skill-monogram">{skill.name.slice(0, 2).toUpperCase()}</span><div className="card-actions"><button className="danger" type="button" onClick={() => window.confirm(`Delete ${skill.name}?`) && del.mutate(skill.id)} aria-label={`Delete ${skill.name}`} title={`Delete ${skill.name}`}><Icon name="trash" size={17} /></button><button type="button" onClick={() => openEdit(skill)} aria-label={`Edit ${skill.name}`} title={`Edit ${skill.name}`}><Icon name="edit" size={17} /></button></div></div><p>{skill.category}</p><h2>{skill.name}</h2><span className={`level-pill ${skill.level}`}>{skill.level}</span><small className="skill-experience">{formatExperience(skill.startDate)}</small>{skill.projects.length ? <div className="skill-projects"><span>Projects</span><ul>{skill.projects.map(project => <li key={project.id}>{project.title}</li>)}</ul></div> : <small className="skill-projects-empty">No linked projects yet</small>}</article>)}</section> : <section className="panel"><EmptyState title="No skills found" description={search || category !== 'All' ? 'Change the filter or search term.' : 'Add skills to build your profile and improve job matching.'} /></section>}
+    {q.isPending ? <LoadingState cards label="Loading skills"/> : visible.length ? <section className="card-grid">{visible.map(skill => <article className="skill-card" key={skill.id}>
+      <div className="skill-card-heading">
+        <div className="skill-card-title"><h2>{skill.name}</h2></div>
+        <span className={`level-pill ${skill.level}`}>{skill.level}</span>
+      </div>
+      <div className="skill-card-category"><span className="skill-card-label">Category</span><span className="skill-card-value">{skill.category}</span></div>
+      <div className="skill-card-details">
+        <div className="skill-card-field"><span className="skill-card-label">Experience</span><span className="skill-card-value">{formatExperience(skill.startDate)}</span></div>
+        <div className="skill-card-field skill-card-project-count" aria-label={`${skill.projects.length} linked projects`}><span className="skill-card-value">{skill.projects.length}</span></div>
+      </div>
+      <div className="skill-card-footer"><div className="card-actions">
+        <button className="danger" type="button" onClick={() => window.confirm(`Delete ${skill.name}?`) && del.mutate(skill.id)} aria-label={`Delete ${skill.name}`} title={`Delete ${skill.name}`}><Icon name="trash" size={17} /></button>
+        <button type="button" onClick={() => openEdit(skill)} aria-label={`Edit ${skill.name}`} title={`Edit ${skill.name}`}><Icon name="edit" size={17} /></button>
+        <button type="button" className="project-edit-action" onClick={() => openDetails(skill)} aria-label={`View details for ${skill.name}`} title="View skill details"><Icon name="eye" size={17} /></button>
+      </div></div>
+    </article>)}</section> : <section className="panel"><EmptyState title="No skills found" description={search || category !== 'All' ? 'Change the filter or search term.' : 'Add skills to build your profile and improve job matching.'} /></section>}
     <Dialog
       open={open}
       onClose={close}
@@ -121,5 +154,26 @@ export default function SkillsPage() {
         <label>Start date<input type="date" max={today} value={startDate} onChange={event => setStartDate(event.target.value)} /></label>
       </form>
     </Dialog>
+    {viewing && <Dialog
+      open={viewingOpen}
+      onClose={closeDetails}
+      wide
+      eyebrow="SKILL DETAILS"
+      title={viewing.name}
+      description="Review proficiency, start date and related project evidence."
+      footer={<div className="dialog-actions"><button className="button button-ghost" type="button" onClick={closeDetails}>Close</button><button className="button button-primary" type="button" onClick={editViewedSkill}><Icon name="edit" size={16} />Edit skill</button></div>}
+    >
+      <div className="application-details">
+        <div className="application-details-grid skill-detail-meta">
+          <div><span>Category</span><strong>{viewing.category}</strong></div>
+          <div><span>Proficiency</span><strong>{viewing.level}</strong></div>
+          <div><span>Start date</span><strong>{viewing.startDate ? new Date(`${viewing.startDate}T00:00:00`).toLocaleDateString() : 'No start date'}</strong></div>
+          <div><span>Projects</span><strong>{viewing.projects.length}</strong></div>
+        </div>
+        <section className="skill-detail-projects"><h3>Project evidence</h3>
+          {viewing.projects.length ? <ul className="application-requirements">{viewing.projects.map(project => <li key={project.id}><span>{project.title}</span></li>)}</ul> : <p>No projects linked to this skill.</p>}
+        </section>
+      </div>
+    </Dialog>}
   </>
 }

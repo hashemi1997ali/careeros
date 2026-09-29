@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react'
 import { Brand, BrandMark } from '@/components/brand'
 import { GlobalSearch } from '@/components/global-search'
 import { Icon, type IconName } from '@/components/icons'
 import { ModalShell } from '@/components/modal-shell'
 import { NotificationViewport } from '@/components/notification-viewport'
 import type { CurrentUser } from '@/components/types'
+import { headerScrollThreshold } from '@/lib/ui-chrome'
 
 type ThemePreference = 'light' | 'dark' | 'system'
 const navigation: Array<{ label: string; href: string; icon: IconName }> = [
@@ -33,8 +34,6 @@ const preferenceEvent = 'careeros-preference-change'
 function subscribePreferences(listener: () => void) { window.addEventListener('storage', listener); window.addEventListener(preferenceEvent, listener); return () => { window.removeEventListener('storage', listener); window.removeEventListener(preferenceEvent, listener) } }
 function storedSidebar() { return localStorage.getItem('careeros-sidebar') === 'collapsed' }
 function storedTheme(): ThemePreference { const value = localStorage.getItem('careeros-theme'); return value === 'light' || value === 'dark' ? value : 'system' }
-function keyboardShortcut() { return navigator.platform.toLowerCase().includes('mac') ? '⌘ K' : 'Ctrl K' }
-const noSubscription = () => () => {}
 
 export function AppShell({ children, user, skillsAppUrl }: { children: ReactNode; user: CurrentUser; skillsAppUrl: string | null }) {
   const pathname = usePathname()
@@ -43,14 +42,21 @@ export function AppShell({ children, user, skillsAppUrl }: { children: ReactNode
   const theme = useSyncExternalStore(subscribePreferences, storedTheme, (): ThemePreference => 'system')
   const [searchOpen, setSearchOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+  const profileTriggerRef = useRef<HTMLButtonElement>(null)
   const [sidebarOpening, setSidebarOpening] = useState(false)
-  const shortcut = useSyncExternalStore(noSubscription, keyboardShortcut, () => 'Ctrl K')
 
   useEffect(() => {
     const apply = () => { const resolved = resolveTheme(theme); document.documentElement.dataset.theme = resolved; document.documentElement.dataset.themePreference = theme; document.documentElement.style.colorScheme = resolved }
     apply(); if (theme !== 'system') return
     const media = window.matchMedia('(prefers-color-scheme: dark)'); media.addEventListener('change', apply); return () => media.removeEventListener('change', apply)
   }, [theme])
+  useEffect(() => {
+    const update = () => setScrolled(window.scrollY > headerScrollThreshold)
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    return () => window.removeEventListener('scroll', update)
+  }, [])
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
       const isSearchShortcut = (event.metaKey || event.ctrlKey) && (event.key.toLowerCase() === 'k' || event.code === 'KeyK')
@@ -67,7 +73,7 @@ export function AppShell({ children, user, skillsAppUrl }: { children: ReactNode
     const timer = window.setTimeout(() => setSidebarOpening(false), duration)
     return () => window.clearTimeout(timer)
   }, [sidebarOpening])
-  const firstName = useMemo(() => user.displayName?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'CareerOS', [user])
+  const accountName = useMemo(() => user.displayName?.trim() || user.email?.split('@')[0] || 'Your account', [user])
   const changeTheme = (next: ThemePreference) => { localStorage.setItem('careeros-theme', next); window.dispatchEvent(new Event(preferenceEvent)) }
   const toggleSidebar = () => { setSidebarOpening(collapsed); localStorage.setItem('careeros-sidebar', collapsed ? 'expanded' : 'collapsed'); window.dispatchEvent(new Event(preferenceEvent)) }
 
@@ -94,13 +100,13 @@ export function AppShell({ children, user, skillsAppUrl }: { children: ReactNode
       </aside>
 
       <div className="content-shell">
-        <div className="workspace-landscape" aria-hidden="true"><div className="workspace-mist" /></div>
-        <header className="topbar"><div className="mobile-brand"><Brand compact href="/"/></div>
-          <button className="global-search-trigger" type="button" onClick={() => setSearchOpen(true)} aria-label="Search CareerOS"><Icon name="search"/><span>Search applications, skills and projects...</span></button>
+        <div className="workspace-landscape career-grid-background" aria-hidden="true" />
+        <header className="topbar career-header-surface" data-scrolled={scrolled ? 'true' : 'false'}><div className="mobile-brand"><Brand compact href="/" className="career-header-logo"/></div>
+          <button className="global-search-trigger" type="button" onClick={() => setSearchOpen(true)} aria-label="Search CareerOS" aria-haspopup="dialog"><Icon name="search"/><span>Search applications, skills and projects...</span></button>
           <div className="topbar-actions">
-            <button className={`profile-button${profileOpen ? ' is-active' : ''}`} type="button" data-profile-trigger onClick={() => setProfileOpen(value => !value)} aria-expanded={profileOpen} aria-haspopup="dialog" aria-label="Open account menu">
+            <button ref={profileTriggerRef} className={`profile-button${profileOpen ? ' is-active' : ''}`} type="button" data-profile-trigger onClick={() => setProfileOpen(value => !value)} aria-expanded={profileOpen} aria-haspopup="dialog" aria-label="Open account menu">
               <Avatar user={user}/>
-              <span className="profile-copy"><strong>{user.displayName ?? firstName}</strong><small>{user.email}</small></span>
+              <span className="profile-copy"><strong>{accountName}</strong>{user.email && <small>{user.email}</small>}</span>
               <Icon name="chevron" size={16}/>
             </button>
           </div>
@@ -114,10 +120,9 @@ export function AppShell({ children, user, skillsAppUrl }: { children: ReactNode
         <main id="main-content" className="app-main"><div key={pathname} className="page-enter">{children}</div></main>
       </div>
     </div>
-    <ModalShell open={profileOpen} onClose={() => setProfileOpen(false)} layerClassName="profile-modal-layer" surfaceClassName="profile-modal" ariaLabel="Account menu">
-        <div className="profile-modal-user"><Avatar user={user}/><div><strong>{user.displayName ?? firstName}</strong><small>{user.email}</small></div></div>
+    <ModalShell open={profileOpen} onClose={() => setProfileOpen(false)} layerClassName="profile-modal-layer" surfaceClassName="profile-modal" anchorRef={profileTriggerRef} ariaLabel="Account menu">
+        <div className="profile-modal-user"><Avatar user={user}/><div><strong>{accountName}</strong>{user.email && <small>{user.email}</small>}</div></div>
         <div className="profile-modal-theme" role="group" aria-label="Color theme">{([['system','monitor','System'],['light','sun','Light'],['dark','moon','Dark']] as const).map(([value,icon,label]) => <button key={value} type="button" className={theme === value ? 'is-active' : ''} onClick={() => changeTheme(value)} aria-pressed={theme === value}><Icon name={icon} size={17}/><span>{label}</span></button>)}</div>
-        <a className="profile-modal-action" href="/auth/account"><Icon name="settings" size={18}/><span>Account settings</span></a>
         <a className="profile-modal-action profile-modal-danger" href="/auth/logout"><Icon name="logout" size={18}/><span>Sign out</span></a>
     </ModalShell>
     <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)}/>

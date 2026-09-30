@@ -16,16 +16,15 @@ import type { Skill, SkillLevel, SkillSuggestion } from '@/components/types'
 
 const levels: SkillLevel[] = ['Beginner', 'Intermediate', 'Advanced']
 const formatExperience = (startDate: string | null) => {
-  if (!startDate) return 'No start date'
+  if (!startDate) return '—'
   const start = new Date(`${startDate}T00:00:00`)
-  if (Number.isNaN(start.getTime())) return 'No start date'
+  if (Number.isNaN(start.getTime())) return '—'
   const now = new Date()
   let months = (now.getFullYear() - start.getFullYear()) * 12 + now.getMonth() - start.getMonth()
   if (now.getDate() < start.getDate()) months -= 1
-  if (months < 1) return 'Less than one month'
-  if (months < 12) return `${months} month${months === 1 ? '' : 's'}`
-  const years = Math.floor(months / 12)
-  return `${years} year${years === 1 ? '' : 's'}`
+  if (months < 1) return '< 1 mo'
+  const years = Math.floor(months / 12), rest = months % 12
+  return [years && `${years} yr`, rest && `${rest} mo`].filter(Boolean).join(' ')
 }
 
 export default function SkillsPage() {
@@ -125,12 +124,12 @@ export default function SkillsPage() {
   return <>
     <section className="page-heading"><div><p className="eyebrow">YOUR CAPABILITIES</p><h1>Skills</h1><p>Track your skills and evidence.</p></div><div className="talent-page-actions"><Link className="button button-ghost" href="/skills/graph"><Icon name="brain" size={17}/>Skill Core</Link><button className="button button-primary" type="button" onClick={openCreate}><Icon name="plus" />Add skill</button></div></section>
     <ResourceToolbar search={search} onSearch={setSearch} searchLabel="Search skills" filters={categories.map(value => ({value,label:value,count:value === 'All' ? skills.length : skills.filter(skill => skill.category === value).length}))} filter={category} onFilter={setCategory} sort={sort} onSort={setSort} sortOptions={[{value:'name',label:'Name A–Z'},{value:'level',label:'Highest proficiency'},{value:'evidence',label:'Most project evidence'}]} count={visible.length} total={skills.length} loading={q.isPending} onReset={search || category !== 'All' ? () => { setSearch(''); setCategory('All') } : undefined}/>
-    {visible.length ? <section className="card-grid">{visible.map((skill, index) => <article className="skill-card" key={skill.id} data-level={skill.level} style={{ '--i': Math.min(index, 10) } as React.CSSProperties}>
+    {visible.length ? <section className="card-grid">{visible.map((skill, index) => <article className="skill-card" key={skill.id} onClick={event => { if (!(event.target as HTMLElement).closest('button, [role="dialog"]')) openDetails(skill) }} style={{ '--i': Math.min(index, 10) } as React.CSSProperties}>
       <div className="skill-card-heading">
         <div className="skill-card-title"><h2>{skill.name}</h2></div>
         <span className={`level-pill ${skill.level}`}>{skill.level}</span>
       </div>
-      <div className="skill-card-category"><span className="skill-card-label">Category</span><span className="skill-card-value">{skill.category}</span></div>
+      <div className="skill-card-category"><span className="sr-only">Category</span><span className="skill-card-value">{skill.category}</span></div>
       <div className="skill-card-details">
         <div className="skill-card-field"><span className="skill-card-label">Experience</span><span className="skill-card-value">{formatExperience(skill.startDate)}</span></div>
         <div className="skill-card-field skill-card-project-count"><span className="skill-card-label">Projects</span><span className="skill-card-value">{skill.projects.length}</span></div>
@@ -174,7 +173,7 @@ export default function SkillsPage() {
           <div><span>Projects</span><strong>{viewing.projects.length}</strong></div>
         </div>
         <section className="skill-detail-projects"><h3>Project evidence</h3>
-          {viewing.projects.length ? <ul className="application-requirements">{viewing.projects.map(project => <li key={project.id}><span>{project.title}</span></li>)}</ul> : <p>No projects linked to this skill.</p>}
+          {viewing.projects.length ? <ul className="application-requirements">{viewing.projects.map(project => <li key={project.id}><Link className="requirement-link" href={`/projects?view=${project.id}`}>{project.title}<Icon name="arrow" size={13} /></Link></li>)}</ul> : <p>No projects linked to this skill.</p>}
         </section>
       </div>
     </Dialog>}

@@ -72,6 +72,14 @@ export default function ProjectsPage() {
     return () => window.clearTimeout(timer)
   }, [params])
 
+  // ?view=<id> opens that project's details (linked from the skill details dialog)
+  useEffect(() => {
+    const project = projects.find(item => String(item.id) === params.get('view'))
+    if (!project) return
+    const timer = window.setTimeout(() => openDetails(project), 0)
+    return () => window.clearTimeout(timer)
+  }, [params, projects])
+
   useEffect(() => {
     if (open) return
     const timer = window.setTimeout(() => setEditing(null), 300)
@@ -104,6 +112,7 @@ export default function ProjectsPage() {
 
   function closeDetails() {
     setViewingOpen(false)
+    if (params.get('view')) router.replace('/projects')
   }
 
   function close() {

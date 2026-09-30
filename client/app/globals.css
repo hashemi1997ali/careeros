@@ -7931,3 +7931,91 @@ textarea {
     letter-spacing: -0.045em;
   }
 }
+
+.dashboard-grid .pipeline-panel .pipeline-bar {
+  display: flex;
+  gap: 3px;
+  height: 14px;
+  margin-top: 16px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--line);
+}
+.dashboard-grid .pipeline-panel .pipeline-bar .status-bar {
+  flex: 1 1 0;
+  min-width: 6px;
+  height: 100%;
+  margin: 0;
+  border-radius: 0;
+}
+.dashboard-grid .pipeline-panel .pipeline-bar .status-bar.empty {
+  background: transparent;
+}
+.dashboard-grid .pipeline-panel .pipeline-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-rows: none;
+  grid-auto-rows: auto;
+  gap: 4px 24px;
+  margin-top: 0;
+  overflow: visible;
+}
+.dashboard-grid .pipeline-panel .pipeline-stage:nth-child(n) {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+}
+.dashboard-grid .pipeline-panel .pipeline-stage .status-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.dashboard-grid .pipeline-panel .status-dot.slate {
+  background: #a9b7ca;
+}
+.dashboard-grid .pipeline-panel .status-dot.blue {
+  background: #2678f2;
+}
+.dashboard-grid .pipeline-panel .status-dot.violet {
+  background: #8e5ce8;
+}
+.dashboard-grid .pipeline-panel .status-dot.amber {
+  background: #f29722;
+}
+.dashboard-grid .pipeline-panel .status-dot.emerald {
+  background: #16a779;
+}
+.dashboard-grid .pipeline-panel .status-dot.rose {
+  background: #e75164;
+}
+.dashboard-grid .pipeline-panel .status-dot.muted {
+  background: var(--subtle);
+}
+.dashboard-grid .pipeline-panel .pipeline-stage span {
+  flex: 1;
+  min-height: 0;
+  overflow-wrap: normal;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: normal;
+}
+.dashboard-grid .pipeline-panel .pipeline-stage strong {
+  margin-top: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.dashboard-grid .pipeline-panel .pipeline-stage[data-empty="true"] strong {
+  color: var(--subtle);
+  font-weight: 500;
+}

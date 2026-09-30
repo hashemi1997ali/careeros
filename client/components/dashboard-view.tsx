@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useQuery } from '@tanstack/react-query'
 import { EmptyState } from '@/components/empty-state'
-import { Icon, type IconName } from '@/components/icons'
+import { Icon } from '@/components/icons'
 import { usePageState } from '@/components/page-state'
 import { PanelTitle } from '@/components/panel-title'
 import { SkillGraph } from '@/components/skill-graph'
@@ -17,12 +17,17 @@ import type { ApplicationStatus, DashboardData, Skill } from '@/components/types
 const pipeline: Array<{ key: ApplicationStatus; label: string; tone: string }> = [
   { key: 'Saved', label: 'Saved', tone: 'slate' },
   { key: 'Applied', label: 'Applied', tone: 'blue' },
-  { key: 'HrInterview', label: 'HR Interview', tone: 'violet' },
-  { key: 'TechnicalInterview', label: 'Technical Interview', tone: 'amber' },
+  { key: 'HrInterview', label: 'HR interview', tone: 'violet' },
+  { key: 'TechnicalInterview', label: 'Technical', tone: 'amber' },
   { key: 'Offer', label: 'Offer', tone: 'emerald' },
   { key: 'Rejected', label: 'Rejected', tone: 'rose' },
-  { key: 'Withdrawn', label: 'Withdrawn', tone: 'slate' },
+  { key: 'Withdrawn', label: 'Withdrawn', tone: 'muted' },
 ]
+
+function greeting(date = new Date()) {
+  const hour = date.getHours()
+  return hour < 5 ? 'Working late' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+}
 
 export function DashboardView() {
   const user = useCareerUser()
@@ -31,8 +36,11 @@ export function DashboardView() {
   const skillsQuery = useQuery({ queryKey: ['skills'], queryFn: ({ signal }) => apiFetch<Skill[]>('/api/skills', { signal }) })
   const dashboard = dashboardQuery.data
   const skills = skillsQuery.data ?? []
-  const displayName = user.displayName?.trim()
+  const firstName = user.displayName?.trim().split(/\s+/)[0]
   const byStatus = dashboard?.applicationsByStatus ?? {} as Record<ApplicationStatus, number>
+  const pipelineTotal = pipeline.reduce((sum, stage) => sum + (byStatus[stage.key] ?? 0), 0)
+  const interviews = (byStatus.HrInterview ?? 0) + (byStatus.TechnicalInterview ?? 0)
+  const matchScore = Math.round(dashboard?.averageMatchScore ?? 0)
   const maxGap = Math.max(...(dashboard?.topMissingSkills.map(skill => skill.count) ?? [1]), 1)
   const roadmapUrl = buildSkillForgeRoadmapUrl(
     skillsAppUrl,
@@ -46,29 +54,32 @@ export function DashboardView() {
     <>
       <section className="page-heading dashboard-heading">
         <div>
-          <p className="eyebrow">YOUR CAREER DASHBOARD</p>
-          <h1>Welcome back{displayName ? `, ${displayName}` : ''}</h1>
-          <p>Here&apos;s your career progress at a glance. Keep going.</p>
+          <p className="eyebrow">Your career dashboard</p>
+          <h1><span suppressHydrationWarning>{greeting()}</span>{firstName ? `, ${firstName}` : ''}</h1>
+          <p>Here is where every role, skill and project stands today.</p>
         </div>
       </section>
 
       <section className="dashboard-grid">
-          <div className="dashboard-summary">
-            <Metric
-              icon="briefcase"
-              label="Applications"
-              value={dashboard?.totalApplications ?? 0}
-              detail="Roles you’re tracking"
-              tone="blue"
-            />
-            <Metric
-              icon="chart"
-              label="Match score"
-              value={`${Math.round(dashboard?.averageMatchScore ?? 0)}%`}
-              detail="Across applications"
-              tone="teal"
-            />
-          </div>
+          <article className="panel dashboard-summary">
+            <div className="summary-figure">
+              <span className="summary-label">Tracked roles</span>
+              <strong className="metric-value">{dashboard?.totalApplications ?? 0}</strong>
+              <span className="summary-detail">{interviews} in interviews · {byStatus.Offer ?? 0} offers</span>
+            </div>
+            <div className="summary-figure">
+              <span className="summary-label">Average match</span>
+              <strong className="metric-value">{matchScore}<small>%</small></strong>
+              <div className="summary-meter" role="img" aria-label={`Average match ${matchScore}%`}>
+                <i style={{ transform: `scaleX(${Math.min(100, Math.max(0, matchScore)) / 100})` }} />
+              </div>
+            </div>
+            <div className="summary-figure">
+              <span className="summary-label">Skills on file</span>
+              <strong className="metric-value">{skillsQuery.isPending ? '…' : skills.length}</strong>
+              <Link className="text-link" href="/skills">Manage skills<Icon name="arrow" size={15} /></Link>
+            </div>
+          </article>
 
           <article className="image-message-card dashboard-card--reminder dashboard-reminder">
             <Image className="theme-image theme-image-light" src="/images/landing/alpine-hero.webp" fill sizes="(min-width: 1200px) 30vw, 100vw" alt="" unoptimized />
@@ -82,14 +93,17 @@ export function DashboardView() {
           <article className="panel pipeline-panel">
             <div className="panel-heading">
               <PanelTitle icon="briefcase" title="Application pipeline" subtitle="Roles by current stage." />
-              <Link className="text-link" href="/applications">View all</Link>
+              <Link className="text-link" href="/applications">View all<Icon name="arrow" size={15} /></Link>
+            </div>
+            <div className="pipeline-bar" role="img" aria-label={`${pipelineTotal} applications across ${pipeline.length} stages`}>
+              {pipelineTotal ? pipeline.map(stage => (byStatus[stage.key] ?? 0) > 0 && <i key={stage.key} className={`status-bar ${stage.tone}`} style={{ flexGrow: byStatus[stage.key] ?? 0 }} title={`${stage.label}: ${byStatus[stage.key]}`} />) : <i className="status-bar empty" />}
             </div>
             <div className="pipeline-list">
               {pipeline.map(stage => (
-                <div className="pipeline-stage" key={stage.key}>
+                <div className="pipeline-stage" key={stage.key} data-empty={(byStatus[stage.key] ?? 0) === 0 ? 'true' : 'false'}>
+                  <i className={`status-dot ${stage.tone}`} aria-hidden="true" />
                   <span>{stage.label}</span>
                   <strong>{byStatus[stage.key] ?? 0}</strong>
-                  <i className={`status-bar ${stage.tone}`} />
                 </div>
               ))}
             </div>
@@ -182,29 +196,5 @@ export function DashboardView() {
           </article>
       </section>
     </>
-  )
-}
-
-function Metric({
-  icon,
-  label,
-  value,
-  detail,
-  tone,
-}: {
-  icon: IconName
-  label: string
-  value: string | number
-  detail: string
-  tone: 'blue' | 'violet' | 'amber' | 'teal'
-}) {
-  return (
-    <article className="metric-card dashboard-card">
-      <div className="metric-main">
-        <span className={`soft-icon ${tone}`}><Icon name={icon} /></span>
-        <div className="metric-copy"><p>{label}</p><small>{detail}</small></div>
-        <strong className="metric-value">{value}</strong>
-      </div>
-    </article>
   )
 }

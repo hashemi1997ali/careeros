@@ -9,11 +9,12 @@ import { usePageState } from '@/components/page-state'
 import { Dialog } from '@/components/dialog'
 import { EmptyState } from '@/components/empty-state'
 import { Icon } from '@/components/icons'
+import { ConfirmButton } from '@/components/confirm-button'
+import { localDateInputValue } from '@/lib/date'
 import { apiFetch } from '@/lib/api-client'
 import type { Skill, SkillLevel, SkillSuggestion } from '@/components/types'
 
 const levels: SkillLevel[] = ['Beginner', 'Intermediate', 'Advanced']
-const today = new Date().toISOString().slice(0, 10)
 const formatExperience = (startDate: string | null) => {
   if (!startDate) return 'No start date'
   const start = new Date(`${startDate}T00:00:00`)
@@ -42,6 +43,7 @@ export default function SkillsPage() {
   const [cat, setCat] = useState('')
   const [level, setLevel] = useState<SkillLevel>('Beginner')
   const [startDate, setStartDate] = useState('')
+  const today = localDateInputValue()
   const [error, setError] = useState<string | null>(null)
 
   const q = useQuery({ queryKey: ['skills'], queryFn: ({ signal }) => apiFetch<Skill[]>('/api/skills', { signal }) })
@@ -115,15 +117,15 @@ export default function SkillsPage() {
 
   const categories = useMemo(() => ['All', ...Array.from(new Set(skills.map(skill => skill.category))).sort((a, b) => a.localeCompare(b))], [skills])
   const visible = useMemo(() => { const term = search.trim().toLowerCase(); return skills.filter(skill => (category === 'All' || skill.category === category) && (!term || `${skill.name} ${skill.category}`.toLowerCase().includes(term))).sort((a, b) => sort === 'level' ? levels.indexOf(b.level) - levels.indexOf(a.level) || a.name.localeCompare(b.name) : sort === 'evidence' ? b.projects.length - a.projects.length || a.name.localeCompare(b.name) : a.name.localeCompare(b.name)) }, [category, search, skills, sort])
-  const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); if (name.trim().length < 2 || cat.trim().length < 2) return; save.mutate({ id: editing?.id ?? null, payload: { name: name.trim(), category: cat.trim(), level, startDate: startDate || null } }) }
+  const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); if (name.trim().length < 2 || cat.trim().length < 2) { setError('Skill name and category need at least two characters.'); return }; save.mutate({ id: editing?.id ?? null, payload: { name: name.trim(), category: cat.trim(), level, startDate: startDate || null } }) }
 
   const pageState = usePageState([q], 'Loading your skills')
   if (pageState) return pageState
 
   return <>
     <section className="page-heading"><div><p className="eyebrow">YOUR CAPABILITIES</p><h1>Skills</h1><p>Track your skills and evidence.</p></div><div className="talent-page-actions"><Link className="button button-ghost" href="/skills/graph"><Icon name="brain" size={17}/>Skill Core</Link><button className="button button-primary" type="button" onClick={openCreate}><Icon name="plus" />Add skill</button></div></section>
-    <ResourceToolbar search={search} onSearch={setSearch} searchLabel="Search skills" filters={categories.map(value => ({value,label:value,count:value === 'All' ? skills.length : skills.filter(skill => skill.category === value).length}))} filter={category} onFilter={setCategory} sort={sort} onSort={setSort} sortOptions={[{value:'name',label:'Name A–Z'},{value:'level',label:'Highest proficiency'},{value:'evidence',label:'Most project evidence'}]} count={visible.length} total={skills.length} onReset={search || category !== 'All' ? () => { setSearch(''); setCategory('All') } : undefined}/>
-    {visible.length ? <section className="card-grid">{visible.map(skill => <article className="skill-card" key={skill.id}>
+    <ResourceToolbar search={search} onSearch={setSearch} searchLabel="Search skills" filters={categories.map(value => ({value,label:value,count:value === 'All' ? skills.length : skills.filter(skill => skill.category === value).length}))} filter={category} onFilter={setCategory} sort={sort} onSort={setSort} sortOptions={[{value:'name',label:'Name A–Z'},{value:'level',label:'Highest proficiency'},{value:'evidence',label:'Most project evidence'}]} count={visible.length} total={skills.length} loading={q.isPending} onReset={search || category !== 'All' ? () => { setSearch(''); setCategory('All') } : undefined}/>
+    {visible.length ? <section className="card-grid">{visible.map((skill, index) => <article className="skill-card" key={skill.id} data-level={skill.level} style={{ '--i': Math.min(index, 10) } as React.CSSProperties}>
       <div className="skill-card-heading">
         <div className="skill-card-title"><h2>{skill.name}</h2></div>
         <span className={`level-pill ${skill.level}`}>{skill.level}</span>
@@ -131,14 +133,14 @@ export default function SkillsPage() {
       <div className="skill-card-category"><span className="skill-card-label">Category</span><span className="skill-card-value">{skill.category}</span></div>
       <div className="skill-card-details">
         <div className="skill-card-field"><span className="skill-card-label">Experience</span><span className="skill-card-value">{formatExperience(skill.startDate)}</span></div>
-        <div className="skill-card-field skill-card-project-count" aria-label={`${skill.projects.length} linked projects`}><span className="skill-card-value">{skill.projects.length}</span></div>
+        <div className="skill-card-field skill-card-project-count"><span className="skill-card-label">Projects</span><span className="skill-card-value">{skill.projects.length}</span></div>
       </div>
       <div className="skill-card-footer"><div className="card-actions">
-        <button className="danger" type="button" onClick={() => window.confirm(`Delete ${skill.name}?`) && del.mutate(skill.id)} aria-label={`Delete ${skill.name}`} title={`Delete ${skill.name}`}><Icon name="trash" size={17} /></button>
-        <button type="button" onClick={() => openEdit(skill)} aria-label={`Edit ${skill.name}`} title={`Edit ${skill.name}`}><Icon name="edit" size={17} /></button>
-        <button type="button" className="project-edit-action" onClick={() => openDetails(skill)} aria-label={`View details for ${skill.name}`} title="View skill details"><Icon name="eye" size={17} /></button>
+        <ConfirmButton className="icon-action danger" label={`Delete ${skill.name}`} onConfirm={() => del.mutate(skill.id)} />
+        <button type="button" className="icon-action" onClick={() => openEdit(skill)} aria-label={`Edit ${skill.name}`} title={`Edit ${skill.name}`}><Icon name="edit" size={17} /></button>
+        <button type="button" className="icon-action" onClick={() => openDetails(skill)} aria-label={`View details for ${skill.name}`} title="View skill details"><Icon name="eye" size={17} /></button>
       </div></div>
-    </article>)}</section> : <section className="panel"><EmptyState title="No skills found" description={search || category !== 'All' ? 'Change the filter or search term.' : 'Add skills to build your profile and improve job matching.'} /></section>}
+    </article>)}</section> : <section className="panel"><EmptyState icon="brain" title={search || category !== 'All' ? 'No skills match' : 'Start your skill profile'} description={search || category !== 'All' ? 'Try another category or search term.' : 'Add the skills you use today. Matching and gap analysis get sharper with every one.'} action={search || category !== 'All' ? <button className="button button-ghost" type="button" onClick={() => { setSearch(''); setCategory('All') }}>Clear filters</button> : <button className="button button-primary" type="button" onClick={openCreate}><Icon name="plus" size={17}/>Add skill</button>} /></section>}
     <Dialog
       open={open}
       onClose={close}
@@ -149,9 +151,9 @@ export default function SkillsPage() {
     >
       <form id="skill-dialog-form" className="dialog-form" onSubmit={submit}>
         {error && <div className="form-error" role="alert">{error}</div>}
-        <div className="skill-name-field"><label htmlFor="skill-name">Skill name</label><input id="skill-name" required minLength={2} maxLength={100} autoComplete="off" value={name} onChange={event => setName(event.target.value)} placeholder="Docker" aria-controls="skill-suggestions" aria-expanded={Boolean(suggestionsQuery.data?.length)} />{Boolean(suggestionsQuery.data?.length) && <div className="skill-suggestions" id="skill-suggestions">{suggestionsQuery.data!.map(suggestion => <button type="button" key={suggestion.id} onClick={() => { setName(suggestion.name); setCat(suggestion.category) }}><strong>{suggestion.name}</strong><span>{suggestion.category}</span></button>)}</div>}</div>
+        <div className="skill-name-field"><label htmlFor="skill-name">Skill name</label><input id="skill-name" required minLength={2} maxLength={100} autoComplete="off" value={name} onChange={event => setName(event.target.value)} placeholder="Docker" role="combobox" aria-autocomplete="list" aria-controls="skill-suggestions" aria-expanded={Boolean(suggestionsQuery.data?.length)} />{Boolean(suggestionsQuery.data?.length) && <div className="skill-suggestions" id="skill-suggestions">{suggestionsQuery.data!.map(suggestion => <button type="button" key={suggestion.id} onClick={() => { setName(suggestion.name); setCat(suggestion.category) }}><strong>{suggestion.name}</strong><span>{suggestion.category}</span></button>)}</div>}</div>
         <label>Category<input required minLength={2} maxLength={50} value={cat} onChange={event => setCat(event.target.value)} placeholder="DevOps" /></label>
-        <label>Proficiency<select value={level} onChange={event => setLevel(event.target.value as SkillLevel)}>{levels.map(item => <option key={item}>{item}</option>)}</select></label>
+        <fieldset className="choice-group"><legend>Proficiency</legend><div className="segmented segmented-form" style={{ '--segment-index': levels.indexOf(level), '--segment-count': levels.length } as React.CSSProperties}><span className="segmented-indicator" aria-hidden="true" />{levels.map(item => <label key={item} className={level === item ? 'is-active' : ''}><input type="radio" name="skill-level" value={item} checked={level === item} onChange={() => setLevel(item)} /><span>{item}</span></label>)}</div></fieldset>
         <label>Start date<input type="date" max={today} value={startDate} onChange={event => setStartDate(event.target.value)} /></label>
       </form>
     </Dialog>

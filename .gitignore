@@ -34,6 +34,10 @@ TestResults/
 
 # Logs and temporary files
 
+.tmp/
+.tmp-*
+.playwright-cli/
+
 *.log
 *.tmp
 *.temp

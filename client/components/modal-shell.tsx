@@ -126,6 +126,53 @@ export function ModalShell({
     }
   }, [mounted, open])
 
+  // Phone bottom sheets (see the max-width: 719px rules): drag the handle or header down to dismiss.
+  // Anchored popovers (the account menu) are not sheets, so they opt out.
+  useEffect(() => {
+    const surface = surfaceRef.current
+    if (!mounted || !open || anchorRef || !surface) return
+    const sheetQuery = window.matchMedia('(max-width: 719px)')
+    const settle = 'transform 0.3s cubic-bezier(0.22, 1, 0.36, 1)'
+    let startY = 0, startTime = 0, offset = 0, pointerId: number | null = null
+
+    const onDown = (event: PointerEvent) => {
+      if (!sheetQuery.matches || event.button > 0) return
+      if (event.clientY - surface.getBoundingClientRect().top > 72) return // grab zone: handle + header
+      if (event.target instanceof Element && event.target.closest('button,a,input,select,textarea,label')) return
+      pointerId = event.pointerId; startY = event.clientY; startTime = event.timeStamp; offset = 0
+      surface.setPointerCapture(event.pointerId)
+      surface.style.transition = 'none'
+    }
+    const onMove = (event: PointerEvent) => {
+      if (event.pointerId !== pointerId) return
+      offset = Math.max(0, event.clientY - startY)
+      surface.style.transform = `translateY(${offset}px)`
+    }
+    const onUp = (event: PointerEvent) => {
+      if (event.pointerId !== pointerId) return
+      pointerId = null
+      const velocity = offset / Math.max(1, event.timeStamp - startTime)
+      surface.style.transition = settle
+      if (event.type === 'pointerup' && (offset > 120 || (offset > 40 && velocity > 0.6))) {
+        surface.style.transform = 'translateY(100%)' // keep going from where the finger let go
+        closeRef.current()
+      } else {
+        surface.style.transform = ''
+      }
+    }
+
+    surface.addEventListener('pointerdown', onDown)
+    surface.addEventListener('pointermove', onMove)
+    surface.addEventListener('pointerup', onUp)
+    surface.addEventListener('pointercancel', onUp)
+    return () => {
+      surface.removeEventListener('pointerdown', onDown)
+      surface.removeEventListener('pointermove', onMove)
+      surface.removeEventListener('pointerup', onUp)
+      surface.removeEventListener('pointercancel', onUp)
+    }
+  }, [mounted, open, anchorRef])
+
   if (!mounted) return null
 
   return createPortal(

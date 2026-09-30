@@ -33,6 +33,34 @@ Deleting the Auth0 identity across CareerOS and SkillForge is a separate account
 orchestration feature. The current API guarantees local ownership and cleanup;
 it does not use Auth0 Management API credentials to delete the central identity.
 
+## Frontend
+
+The client is Next.js (App Router) with plain CSS; there is no component library.
+
+- **Design tokens** live at the top of `client/app/globals.css`: neutral surfaces
+  (white / near-black), one accent colour, status colours, spacing, radii and a
+  shared button system (`--btn-*`). The landing page (`app/landing.module.css`),
+  the workspace and Skill Core (`app/talent-graph.css`) all read the same tokens.
+- **Typeface**: Manrope everywhere (`lib/brand-font.ts`, loaded with `next/font`).
+- **Theme**: light / dark. The first visit follows the operating system; after
+  the user presses the theme switch their choice is stored and wins
+  (`lib/theme.ts`, `components/theme-toggle.tsx`). Switching reveals the new
+  theme with a circular View Transition.
+- **Navigation**: full navigations between the landing page and the workspace
+  cross-fade both headers and slide the sidebar (cross-document View
+  Transitions). Browsers without support simply navigate.
+- **Layout**: sidebar + header on desktop; below 1024px the sidebar becomes a
+  bottom navigation bar and the header matches the landing header. On phones,
+  dialogs open as bottom sheets that can be dragged down to close
+  (`components/modal-shell.tsx`).
+- **States**: every workspace page shows one loader and one error screen for its
+  queries (`components/page-state.tsx`); deletes use a two-step confirm button
+  (`components/confirm-button.tsx`).
+- Motion respects `prefers-reduced-motion`.
+
+Check the client with `npm run lint`, `npm run typecheck` and `npm run build`
+from `client/`.
+
 ## Backend stack
 
 - .NET 10 / ASP.NET Core Controllers

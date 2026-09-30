@@ -10,7 +10,7 @@
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --dur-fast: 0.16s;
   --dur: 0.24s;
-  --dur-slow: 0.32s; /* matches the sidebar-opening timer in app-shell.tsx */
+  --dur-slow: 0.32s;
   --dur-page: 0.42s;
   --stagger: 45ms;
 }
@@ -86,22 +86,6 @@
 }
 
 /* ---- Shell: sidebar, header, mobile nav ------------------------------- */
-.app-shell {
-  transition: grid-template-columns var(--dur-slow) var(--ease-out), --sidebar-width var(--dur-slow) var(--ease-out);
-}
-.app-shell .sidebar :is(.nav-link span, .sidebar-identity-wordmark, .sidebar-visual) {
-  transition: opacity var(--dur) var(--ease-out), transform var(--dur-slow) var(--ease-out);
-}
-.app-shell[data-collapsed="true"] .sidebar :is(.nav-link span, .sidebar-identity-wordmark) {
-  opacity: 0;
-  transform: translate3d(-4px, 0, 0);
-}
-.app-shell[data-sidebar-opening="true"] .sidebar :is(.nav-link span, .sidebar-identity-wordmark, .sidebar-visual) {
-  opacity: 0;
-}
-.app-shell .topbar.career-header-surface {
-  transition: background-color var(--dur-slow) var(--ease-out), box-shadow var(--dur-slow) var(--ease-out);
-}
 .mobile-nav-indicator { transition-duration: var(--dur-page) !important; transition-timing-function: var(--ease-out) !important; }
 
 /* ---- Modals and toasts ------------------------------------------------- */

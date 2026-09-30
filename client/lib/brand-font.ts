@@ -1,10 +1,8 @@
-import localFont from "next/font/local";
+import { Manrope } from "next/font/google";
 
-export const manrope = localFont({
-  src: [
-    { path: "../public/fonts/manrope-regular.ttf", weight: "400", style: "normal" },
-    { path: "../public/fonts/manrope-semibold.ttf", weight: "600", style: "normal" },
-  ],
+/** The one typeface for the landing page and the workspace (variable: every weight 200–800 is real, never synthesized). */
+export const manrope = Manrope({
+  subsets: ["latin"],
   variable: "--font-landing",
   display: "swap",
 });

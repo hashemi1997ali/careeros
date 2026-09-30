@@ -6,6 +6,7 @@ import { BrandMark } from "@/components/brand";
 import { Icon } from "@/components/icons";
 import dynamic from "next/dynamic";
 import { headerScrollThreshold } from "@/lib/ui-chrome";
+import { ThemeSwitch } from "@/components/theme-toggle";
 
 // three.js is ~600 KB: load the particle field after first paint instead of in the main bundle.
 const OraviaParticleField = dynamic(
@@ -40,10 +41,6 @@ const productStories = [
 
 function Arrow() {
   return <Icon name="arrow" size={16}/>;
-}
-
-function ThemeIcon({ theme }: { theme: "light" | "dark" | null }) {
-  return <Icon name={theme === "dark" ? "moon" : "sun"} size={19}/>;
 }
 
 function Logo() {
@@ -100,16 +97,12 @@ export function CareerLanding({ authenticated, fontClassName }: { authenticated:
   const [activeStory, setActiveStory] = useState(0);
   const [activeWorkspace, setActiveWorkspace] = useState(1);
   const [scrolled, setScrolled] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark" | null>(null);
   const pageRef = useRef<HTMLDivElement>(null);
   const mainAction = authenticated ? "/dashboard" : signup;
 
   useEffect(() => {
     const root = pageRef.current;
     if (!root) return;
-    const headerFrame = requestAnimationFrame(() => {
-      setTheme(document.documentElement.dataset.theme === "dark" ? "dark" : "light");
-    });
     const reveals = [...root.querySelectorAll<HTMLElement>("[data-scroll-reveal]")];
     const lifecycle = root.querySelector<HTMLElement>("[data-career-lifecycle]");
     const lifecycleHeader = root.querySelector<HTMLElement>("[data-lifecycle-header]");
@@ -149,7 +142,6 @@ export function CareerLanding({ authenticated, fontClassName }: { authenticated:
     window.addEventListener("resize", schedule);
     reduced.addEventListener("change", schedule);
     return () => {
-      cancelAnimationFrame(headerFrame);
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
       reduced.removeEventListener("change", schedule);
@@ -184,15 +176,6 @@ export function CareerLanding({ authenticated, fontClassName }: { authenticated:
     return () => { observer.disconnect(); if (timer) window.clearInterval(timer); };
   }, []);
 
-  function toggleTheme() {
-    const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-    document.documentElement.dataset.theme = next;
-    document.documentElement.dataset.themePreference = next;
-    document.documentElement.style.colorScheme = next;
-    localStorage.setItem("careeros-theme", next);
-    setTheme(next);
-  }
-
   const nav = <><a href="#how-it-works" onClick={() => setMenuOpen(false)}>How it works</a><a href="#features" onClick={() => setMenuOpen(false)}>Features</a><a href="#workspace" onClick={() => setMenuOpen(false)}>Workspace</a></>;
 
   return <div ref={pageRef} className={`${styles.page} ${fontClassName}`}>
@@ -200,11 +183,11 @@ export function CareerLanding({ authenticated, fontClassName }: { authenticated:
     <OraviaParticleField/>
     <a className={styles.skip} href="#main-content">Skip to content</a>
     <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ""}`}>
-      <div className={`${styles.headerInner} career-header-surface`} data-scrolled={scrolled ? "true" : "false"}>
+      <div className={`${styles.headerInner} career-header-surface vt-landing-header`} data-scrolled={scrolled ? "true" : "false"}>
         <a href="#top" aria-label="CareerOS home"><Logo/></a>
         <nav className={styles.desktopNav} aria-label="Main navigation">{nav}</nav>
         <div className={styles.headerActions}>
-          <button type="button" className={styles.themeButton} onClick={toggleTheme} aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"} title={theme === "dark" ? "Light theme" : "Dark theme"}><span className={styles.shimmerLayer} aria-hidden="true"/><ThemeIcon theme={theme}/></button>
+          <ThemeSwitch/>
           {!authenticated && <a className={styles.signIn} href="/auth/login?returnTo=/dashboard">Sign in</a>}
           <a className={styles.headerCta} href={mainAction} aria-label={authenticated ? "Open dashboard" : "Get started with CareerOS"}><span className={styles.shimmerLayer}/><span className={styles.buttonContent}>{authenticated ? "Dashboard" : "Get started"}<Arrow/></span></a>
           <button type="button" className={styles.menuButton} aria-label={menuOpen ? "Close menu" : "Open menu"} aria-expanded={menuOpen} aria-controls="landing-menu" onClick={() => setMenuOpen(!menuOpen)}><span/><span/><i className={styles.shimmerLayer}/></button>
@@ -305,7 +288,7 @@ export function CareerLanding({ authenticated, fontClassName }: { authenticated:
             <div className={styles.storyStats}>
               <div><strong>Profile</strong><span>Skills and experience in one view</span></div>
               <div><strong>Evidence</strong><span>{productStories[activeStory].state}</span></div>
-              <div><strong>Direction</strong><span>{productStories[(activeStory + 1) % productStories.length].area.toLowerCase()}</span></div>
+              <div><strong>Direction</strong><span>Next: {(area => area.charAt(0) + area.slice(1).toLowerCase())(productStories[(activeStory + 1) % productStories.length].area)}</span></div>
             </div>
           </div>
         </div>

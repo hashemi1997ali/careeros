@@ -908,15 +908,17 @@ td[data-label="Company"] .cell-stack > * { min-width: 0; overflow: hidden; text-
 .requirement-preview { display: grid; gap: 8px; margin-top: 8px; padding-top: 12px; border-top: 1px dashed var(--line-strong); font-size: 0.86rem; }
 .requirement-preview ul, .application-requirements { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .requirement-preview li, .application-requirements li { display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-weight: 600; font-size: 0.82rem; }
+.requirement-preview .requirement-more { background: transparent; border-style: dashed; color: var(--muted); }
 .requirement-preview small, .application-requirements small { color: var(--subtle); font-weight: 500; }
 .requirement-link { display: inline-flex; align-items: center; gap: 6px; margin: -5px -10px; padding: 5px 10px; border-radius: inherit; transition: color var(--fast) var(--ease-out); }
 .requirement-link:hover { color: var(--primary); }
 .analyzer-result { min-height: 520px; }
+.analyzer-result:has(> .analysis-empty) { align-self: stretch; display: flex; flex-direction: column; }
 .analyzer-skeleton { min-height: 260px; }
-.analysis-empty { display: grid; justify-items: center; text-align: center; gap: var(--space-sm); padding: var(--space-2xl) var(--space-md); }
-.analysis-empty h2 { font-family: var(--font-heading); font-size: 1.3rem; font-weight: 600; margin-top: var(--space-md); }
+.analysis-empty { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--space-sm); padding: var(--space-md); }
+.analysis-empty h2 { font-family: var(--font-heading); font-size: 1.3rem; font-weight: 600; margin-top: var(--space-2xl); }
 .analysis-empty p { color: var(--muted); max-width: 44ch; font-size: 0.92rem; }
-.analysis-application-card { display: flex; flex-wrap: wrap; margin-bottom: var(--space-lg); border-radius: var(--radius-lg); overflow: hidden; background: var(--surface); border: 1px solid var(--line); }
+.analysis-application-card { display: flex; flex-wrap: wrap; margin-top: var(--space-lg); border-radius: var(--radius-lg); overflow: hidden; background: var(--surface); border: 1px solid var(--line); }
 .analysis-application-card > div { flex: 1 1 130px; display: grid; gap: 2px; padding: 12px 14px; box-shadow: 1px 0 var(--line), 0 1px var(--line); }
 .analysis-application-card span { color: var(--subtle); font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
 .analysis-application-card strong { font-size: 0.9rem; font-weight: 600; overflow-wrap: anywhere; }
@@ -924,7 +926,8 @@ td[data-label="Company"] .cell-stack > * { min-width: 0; overflow: hidden; text-
 .ai-analysis-summary { display: grid; gap: 6px; margin-bottom: var(--space-lg); }
 .ai-analysis-summary strong { font-family: var(--font-heading); font-size: 1.2rem; font-weight: 600; line-height: 1.3; }
 .ai-analysis-summary p { color: var(--muted); max-width: 70ch; }
-.match-result { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-xl); align-items: start; }
+.analysis-score { display: grid; justify-items: center; padding: var(--space-md) var(--space-md) var(--space-lg); }
+.match-result { display: grid; }
 .score-ring { position: relative; width: 168px; height: 168px; flex: none; }
 .score-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
 .score-ring-track { fill: none; stroke: var(--surface-3); stroke-width: 10; }
@@ -947,8 +950,7 @@ td[data-label="Company"] .cell-stack > * { min-width: 0; overflow: hidden; text-
 .match-list.good .match-skill-item { background: var(--success-soft); color: var(--success); }
 .match-list.danger .match-skill-item { background: var(--danger-soft); color: var(--danger); }
 .match-list.warning .match-skill-item { background: var(--warning-soft); color: var(--warning); }
-.match-roadmap-link { grid-column: 1 / -1; }
-.analyzer-create-application { margin-top: var(--space-lg); }
+.analyzer-result-actions { display: grid; gap: var(--space-sm); margin-top: var(--space-lg); }
 
 /* ==========================================================================
    Details (dialogs)
@@ -1186,8 +1188,6 @@ td[data-label="Company"] .cell-stack > * { min-width: 0; overflow: hidden; text-
   .card-grid, .project-list { grid-template-columns: minmax(0, 1fr); }
   .card-actions { opacity: 1; }
   .project-live-link { opacity: 1; transform: none; }
-  .match-result { grid-template-columns: minmax(0, 1fr); justify-items: center; }
-  .match-columns { width: 100%; }
   .requirement-row { grid-template-columns: minmax(0, 1fr) auto; }
   .requirement-row > label:first-child { grid-column: 1 / -1; }
 

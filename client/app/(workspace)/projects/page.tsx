@@ -8,6 +8,8 @@ import { usePageState } from '@/components/page-state'
 import { Dialog } from '@/components/dialog'
 import { EmptyState } from '@/components/empty-state'
 import { Icon } from '@/components/icons'
+import { ConfirmButton } from '@/components/confirm-button'
+import { localDateInputValue } from '@/lib/date'
 import { apiFetch } from '@/lib/api-client'
 import type { Project, Skill } from '@/components/types'
 
@@ -19,12 +21,11 @@ const formatProjectPeriod = (startDate: string | null, endDate: string | null) =
       : new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric' }).format(date)
   }
 
-  if (startDate && endDate) return `${format(startDate)} – ${format(endDate)}`
+  if (startDate && endDate) return `${format(startDate)} to ${format(endDate)}`
   if (startDate) return `Started ${format(startDate)}`
   if (endDate) return `Ends ${format(endDate)}`
   return 'Dates not set'
 }
-const today = new Date().toISOString().slice(0, 10)
 
 export default function ProjectsPage() {
   const router = useRouter()
@@ -45,6 +46,7 @@ export default function ProjectsPage() {
   const [endDate, setEndDate] = useState('')
   const [skillIds, setSkillIds] = useState<number[]>([])
   const [error, setError] = useState<string | null>(null)
+  const today = localDateInputValue()
 
   const projectsQ = useQuery({ queryKey: ['projects'], queryFn: ({ signal }) => apiFetch<Project[]>('/api/projects', { signal }) })
   const skillsQ = useQuery({ queryKey: ['skills'], queryFn: ({ signal }) => apiFetch<Skill[]>('/api/skills', { signal }) })
@@ -164,7 +166,7 @@ export default function ProjectsPage() {
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (title.trim().length < 2 || description.trim().length < 10) return
+    if (title.trim().length < 2 || description.trim().length < 10) { setError('Add a title (2+ characters) and a description (10+ characters).'); return }
     if (endDate && !startDate) {
       setError('Choose a start date before setting an end date.')
       return
@@ -193,9 +195,9 @@ export default function ProjectsPage() {
     {visible.length ? (
       <section className="project-list">
         {visible.map((project, index) => (
-          <article className="project-card" key={project.id}>
+          <article className="project-card" key={project.id} style={{ '--i': Math.min(index, 8) } as React.CSSProperties}>
             <div className={`project-art project-preview art-${index % 3}`}>
-              {project.liveUrl && <iframe className="project-live-preview" src={project.liveUrl} title={`${project.title} live preview`} loading="lazy" scrolling="no" tabIndex={-1} />}
+              {project.liveUrl && <iframe className="project-live-preview" src={project.liveUrl} title={`${project.title} live preview`} loading="lazy" scrolling="no" tabIndex={-1} sandbox="allow-scripts allow-same-origin" referrerPolicy="no-referrer" aria-hidden="true" />}
               {!project.liveUrl && <div className="project-no-preview"><Icon name="folder" size={25} /><span>No live preview</span></div>}
               {project.liveUrl && <a className="project-live-link" href={project.liveUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open ${project.title} live site`} title="Open live site"><Icon name="external" size={17} /></a>}
             </div>
@@ -208,17 +210,17 @@ export default function ProjectsPage() {
               </div>
               <div className="project-actions">
                 <div className="project-link-row">
-                  <button className="danger" type="button" onClick={() => window.confirm(`Delete ${project.title}?`) && del.mutate(project.id)} aria-label={`Delete ${project.title}`} title={`Delete ${project.title}`}><Icon name="trash" size={17} /></button>
-                  <button className="project-edit-action" type="button" onClick={() => openEdit(project)} aria-label={`Edit ${project.title}`} title={`Edit ${project.title}`}><Icon name="edit" size={17} /></button>
-                  <button className="project-edit-action" type="button" onClick={() => openDetails(project)} aria-label={`View details for ${project.title}`} title="View project details"><Icon name="eye" size={17} /></button>
-                  {(project.liveUrl || project.repositoryUrl) && <a className="project-edit-action" href={project.liveUrl ?? project.repositoryUrl ?? undefined} target="_blank" rel="noopener noreferrer" aria-label={`Open a link for ${project.title}`} title="Open project link"><Icon name="share" size={17} /></a>}
+                  <ConfirmButton className="icon-action danger" label={`Delete ${project.title}`} onConfirm={() => del.mutate(project.id)} />
+                  <button className="icon-action" type="button" onClick={() => openEdit(project)} aria-label={`Edit ${project.title}`} title={`Edit ${project.title}`}><Icon name="edit" size={17} /></button>
+                  <button className="icon-action" type="button" onClick={() => openDetails(project)} aria-label={`View details for ${project.title}`} title="View project details"><Icon name="eye" size={17} /></button>
+                  {(project.liveUrl || project.repositoryUrl) && <a className="icon-action" href={project.liveUrl ?? project.repositoryUrl ?? undefined} target="_blank" rel="noopener noreferrer" aria-label={`Open a link for ${project.title}`} title="Open project link"><Icon name="share" size={17} /></a>}
                 </div>
               </div>
             </div>
           </article>
         ))}
       </section>
-    ) : <section className="panel"><EmptyState title="No projects found" description={search || filter !== 'All' ? 'Change the filter or search term.' : 'Add a project to turn your skills into visible evidence.'} /></section>}
+    ) : <section className="panel"><EmptyState icon="folder" title={search || filter !== 'All' ? 'No projects match' : 'Show what you built'} description={search || filter !== 'All' ? 'Try a different filter or search term.' : 'Add a project and link the skills it proves. Recruiters trust evidence more than lists.'} action={search || filter !== 'All' ? <button className="button button-ghost" type="button" onClick={() => { setSearch(''); setFilter('All') }}>Clear filters</button> : <button className="button button-primary" type="button" onClick={openCreate}><Icon name="plus" size={17}/>Add project</button>} /></section>}
     <Dialog
       open={open}
       onClose={close}

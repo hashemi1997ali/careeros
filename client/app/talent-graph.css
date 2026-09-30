@@ -13,7 +13,7 @@
 .talent-node rect{fill:var(--surface);stroke:color-mix(in srgb,var(--talent-level) 28%,var(--line));stroke-width:1;filter:drop-shadow(0 3px 5px color-mix(in srgb,var(--ink) 5%,transparent));transition:stroke .2s ease}
 .talent-node:hover rect{stroke:var(--talent-level)}.talent-node circle{fill:var(--talent-level)}
 .talent-skill-name{fill:var(--ink);font-size:11px;font-weight:600}.talent-skill-level{fill:var(--muted);font-size:10px}
-.talent-category-label{width:100%;height:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;padding:0 10px;color:var(--ink);font:600 12px/1 var(--font-landing),var(--font-inter),sans-serif}
+.talent-category-label{width:100%;height:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;padding:0 10px;color:var(--ink);font:600 12px/1 var(--font-body)}
 .talent-category-label span{display:block;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .talent-preview-empty{margin:-38px 0 20px;position:relative;color:var(--muted);font-size:12px;text-align:center}
 .talent-page-actions{display:flex;gap:10px;flex-wrap:wrap}
@@ -91,3 +91,41 @@
 /* The profile card is folded into a single, larger dashboard graph. */
 .dashboard-grid>.graph-panel{grid-column:span 6}
 @media(max-width:1399px){.dashboard-grid>.graph-panel{grid-column:span 12}}
+
+/* ==========================================================================
+   Skill Core inspector (overrides the layered rules above)
+   Flat, readable category rows; every category visible; a compact detail card.
+   ========================================================================== */
+.talent-zoom input{accent-color:var(--ink)}
+.talent-inspector{gap:12px;padding:20px}
+.talent-inspector-heading h2{font-size:1rem;font-weight:650}
+.talent-inspector-summary{font-size:12px;color:var(--subtle)}
+
+.talent-category-list{gap:2px;padding:0}
+.talent-category-list>button{
+  flex:0 0 auto;min-height:48px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;
+  padding:0 12px;border:0;border-radius:var(--radius);background:transparent;color:var(--ink);text-align:left;cursor:pointer;
+  transition:background .15s ease
+}
+.talent-category-list>button:hover{background:var(--surface-2);border:0}
+.talent-category-list>button[aria-pressed="true"]{background:color-mix(in srgb,var(--category-color) 12%,var(--surface));box-shadow:inset 3px 0 0 var(--category-color);border:0}
+.talent-category-list>button>i{width:9px;height:9px;flex:none;border-radius:50%;background:var(--category-color)}
+.talent-category-list>button strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:600}
+.talent-category-list>button small{min-width:26px;margin:0;padding:3px 8px;border-radius:999px;background:var(--surface-3);color:var(--muted);font-size:12px;font-weight:600;line-height:1.2;text-align:center;font-variant-numeric:tabular-nums}
+
+.talent-selected{flex:none;height:auto;min-height:0;gap:10px;padding:16px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--surface-2)}
+.talent-selected h3{font-size:15px;white-space:normal}
+.talent-selected .talent-category-count{font-size:12px}
+.talent-selected-description{display:block;max-height:none;font-size:13px;line-height:1.5;-webkit-line-clamp:unset}
+.talent-selected-category-skills{display:flex;flex-wrap:wrap;gap:6px;max-height:none;margin:0;padding:0;list-style:none;-webkit-line-clamp:unset}
+.talent-selected-category-skills li{padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);font-size:12px;font-weight:600}
+.talent-selected-link{font-size:13px}
+
+/* The panel grows with its content (the grid row stretches the sphere to match), so every
+   category is visible without an inner scroll at any width. */
+.talent-inspector{height:auto;min-height:640px}
+.talent-category-list-frame{flex:none;overflow:visible}
+.talent-category-list-frame::before,.talent-category-list-frame::after{display:none}
+.talent-category-list{height:auto;overflow:visible}
+@media(max-width:1250px){.talent-inspector{min-height:0}}
+@media(max-width:520px){.talent-inspector{height:auto;min-height:0;padding:16px}.talent-category-list>button{min-height:48px}.talent-selected{height:auto;min-height:0}}

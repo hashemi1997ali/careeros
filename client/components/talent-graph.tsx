@@ -112,7 +112,6 @@ export function TalentGraph({ skills }: { skills: Skill[] }) {
     if (zoomFrame.current !== null) cancelAnimationFrame(zoomFrame.current)
   }, [])
 
-  const selectSkill = (id: number) => { const skill = skills.find(item => item.id === id); setSelectedId(id); setSelectedCategoryKey(skill ? categoryKey(skill.category) : null) }
   const selectCategory = (key: string) => { setSelectedId(null); setSelectedCategoryKey(current => current === key ? null : key) }
   const onListScroll = (event: UIEvent<HTMLDivElement>) => updateListEdges(event.currentTarget)
 
@@ -131,7 +130,7 @@ export function TalentGraph({ skills }: { skills: Skill[] }) {
         <div className="talent-inspector-summary" role="status">{visibleCategories.length} of {model.categories.length} categories</div>
         <div className={`talent-category-list-frame${listAtTop ? ' is-at-top' : ''}${listAtBottom ? ' is-at-bottom' : ''}`}>
           <div ref={listRef} onScroll={onListScroll} className="talent-skill-list talent-category-list" aria-label="Skill categories">
-            {visibleCategories.length ? visibleCategories.map(category => <button type="button" key={category.key} aria-pressed={selectedCategory?.key === category.key} onClick={() => selectCategory(category.key)} style={{ '--category-color': category.color } as CSSProperties}><i/><span><strong>{category.label}</strong><small>{category.members.length} {category.members.length === 1 ? 'skill' : 'skills'}</small></span></button>) : <div className="talent-no-results"><strong>No matching categories</strong><button type="button" className="text-link" onClick={() => setSearch('')}>Clear search</button></div>}
+            {visibleCategories.length ? visibleCategories.map(category => <button type="button" key={category.key} aria-pressed={selectedCategory?.key === category.key} onClick={() => selectCategory(category.key)} style={{ '--category-color': category.color } as CSSProperties}><i/><strong>{category.label}</strong><small aria-label={`${category.members.length} ${category.members.length === 1 ? 'skill' : 'skills'}`}>{category.members.length}</small></button>) : <div className="talent-no-results"><strong>No matching categories</strong><button type="button" className="text-link" onClick={() => setSearch('')}>Clear search</button></div>}
           </div>
         </div>
         <div className={`talent-selected${selected ? ' has-selection' : ''}`} aria-live="polite">{selected ? <>
@@ -139,7 +138,7 @@ export function TalentGraph({ skills }: { skills: Skill[] }) {
           {selectedSkillForgeUrl && <a className="talent-selected-link" href={selectedSkillForgeUrl} target="_blank" rel="noreferrer"><Icon name="skillforge" size={15}/>Open in SkillForge<Icon name="external" size={13}/></a>}
         </> : selectedCategory ? <>
           <div className="talent-selected-main"><h3>{selectedCategory.label}</h3><span className="talent-category-count">{selectedCategory.members.length} skills</span></div>
-          <p className="talent-selected-category-skills">{selectedCategory.members.map(skill => skill.name).join(' · ')}</p>
+          <ul className="talent-selected-category-skills">{selectedCategory.members.map(skill => <li key={skill.id}>{skill.name}</li>)}</ul>
         </> : <>
           <div className="talent-selected-main"><h3>See how your skills connect</h3></div>
           <p className="talent-selected-description">Select a category or skill in the sphere to explore its connections.</p>

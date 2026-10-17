@@ -1,196 +1,288 @@
-# CareerOS
+# 🎯 CareerOS
 
-CareerOS is a career-management platform for tracking skills, project evidence,
-job applications, requirements, match scores, and skill gaps.
+A full-stack career-management platform built with Next.js, ASP.NET Core, PostgreSQL, Auth0, and an OpenAI-compatible AI provider.
 
-The repository contains a Next.js Backend-for-Frontend and an ASP.NET Core API:
+CareerOS brings skills, project evidence, job applications, and role requirements into one workspace. It helps you see which requirements your current skills cover, where the gaps are, and what to work on next. AI can extract application details from a posting and analyze a role against your skills and projects.
+
+## 📖 Project Overview
+
+The browser uses a Next.js Backend-for-Frontend (BFF). Next.js holds the encrypted Auth0 session and forwards authenticated requests to the ASP.NET Core API; the API owns the data in PostgreSQL.
 
 ```text
-browser -> client/ (Next.js, encrypted first-party session)
-               -> server/ (ASP.NET Core, bearer-token API)
-                         -> PostgreSQL (EF Core + Npgsql)
+Browser → client/ (Next.js BFF, Auth0 session)
+        → server/ (ASP.NET Core bearer-token API)
+        → PostgreSQL (EF Core + Npgsql)
 ```
 
-CareerOS and the companion SkillForge application use the same Auth0 tenant.
-Each application has its own OIDC client, while both APIs validate access tokens
-for the shared API audience. Auth0 single sign-on means signing in to one app can
-reuse the provider session in the other app.
+```text
+careeros/
+├── client/             Next.js application and BFF routes
+├── server/             ASP.NET Core API, services, and EF Core migrations
+├── .github/workflows/  API build and Azure Web App deployment workflow
+├── package.json        Root development, setup, and build scripts
+└── README.md
+```
 
-## Authentication and data ownership
+CareerOS can work alongside **SkillForge**. The two applications use separate Auth0 OIDC clients in the same tenant and can request tokens for the same API audience. Auth0 single sign-on can reuse the provider session across the apps. The SkillForge URL is optional for the core CareerOS workflow.
 
-- The official Auth0 Next.js SDK performs Authorization Code + PKCE login,
-  refreshes tokens, and stores its session in an encrypted HTTP-only cookie.
-- The ASP.NET Core server validates JWT issuer, audience, lifetime, and signature.
-- `POST /api/users/sync` provisions or refreshes the local user from Auth0's
-  `/userinfo` endpoint. The stable OIDC `sub` claim is stored as `User.AuthSub`.
-- Skills, projects, and job applications are scoped to the local
-  user derived from the validated token. A resource owned by another user is
-  returned as not found.
-- Foreign keys use cascading deletes, so removing a local user removes all of
-  that user's CareerOS data.
+## ✨ Features
 
-Deleting the Auth0 identity across CareerOS and SkillForge is a separate account
-orchestration feature. The current API guarantees local ownership and cleanup;
-it does not use Auth0 Management API credentials to delete the central identity.
+### 🧠 Skills and Skill Core
 
-## Frontend
+- Add, edit, delete, search, sort, and filter your skills by category and proficiency.
+- Track a start date and one of three levels: `Beginner`, `Intermediate`, or `Advanced`.
+- Get suggestions from a shared skill catalog while keeping proficiency and project links specific to your account. Names are normalized for the catalog: common aliases such as `JS` become `JavaScript`, all-lowercase names are title-cased, and deliberate casing such as `PHP` or `jQuery` is kept.
+- Explore categories and skills in the interactive 3D **Skill Core**, with a corresponding skill list and reduced-motion support.
 
-The client is Next.js (App Router) with plain CSS; there is no component library.
+### 📁 Projects
 
-- **Design tokens** live at the top of `client/app/globals.css`: neutral surfaces
-  (white / near-black), one accent colour, status colours, spacing, radii and a
-  shared button system (`--btn-*`). The landing page (`app/landing.module.css`),
-  the workspace and Skill Core (`app/talent-graph.css`) all read the same tokens.
-- **Typeface**: Manrope everywhere (`lib/brand-font.ts`, loaded with `next/font`).
-- **Theme**: light / dark. The first visit follows the operating system; after
-  the user presses the theme switch their choice is stored and wins
-  (`lib/theme.ts`, `components/theme-toggle.tsx`). Switching reveals the new
-  theme with a circular View Transition.
-- **Navigation**: full navigations between the landing page and the workspace
-  cross-fade both headers and slide the sidebar (cross-document View
-  Transitions). Browsers without support simply navigate.
-- **Layout**: sidebar + header on desktop; below 1024px the sidebar becomes a
-  bottom navigation bar and the header matches the landing header. On phones,
-  dialogs open as bottom sheets that can be dragged down to close
-  (`components/modal-shell.tsx`).
-- **States**: every workspace page shows one loader and one error screen for its
-  queries (`components/page-state.tsx`); deletes use a two-step confirm button
-  (`components/confirm-button.tsx`).
-- Motion respects `prefers-reduced-motion`.
+- Record project descriptions, dates, repository and live URLs. Live sites appear as a preview on the project card when the site allows embedding.
+- Link owned skills to projects as evidence of practical experience.
+- Search and filter projects and manage their skill links.
 
-Check the client with `npm run lint`, `npm run typecheck` and `npm run build`
-from `client/`.
+### 💼 Job Applications
 
-## Backend stack
+- Save a company, role, URL, location, salary, dates, description, notes, and required or optional requirements.
+- Move applications through `Saved`, `Applied`, `HrInterview`, `TechnicalInterview`, `Offer`, `Rejected`, and `Withdrawn`.
+- Search, filter, and sort the application list.
+- Retrieve a deterministic match score and lists of matched, missing required, and missing optional skills for a saved application.
 
-- .NET 10 / ASP.NET Core Controllers
-- Entity Framework Core and PostgreSQL (Neon)
-- Auth0-compatible OIDC/JWT bearer authentication
-- OpenAPI
-- Service layer and request/response DTOs
-- RFC 7807 Problem Details error responses
+The deterministic score is the percentage of saved requirements whose names match a skill in your profile. Names are compared in the same canonical form as the skill catalog, so case, spacing, and common aliases such as `JS`/`JavaScript` or `Postgres`/`PostgreSQL` do not matter. Required and optional requirements contribute equally to this score; they are separated in the gap lists. An application with no requirements has a score of `0` and `hasRequirements: false`.
 
-## Local setup
+### 🤖 AI Assistance
 
-### Run the full stack
+- Fill an application draft from pasted job text or a readable public job URL. The extracted data can include company, position, location, salary, description, and atomic required or optional requirements.
+- Analyze pasted text, a public job URL, or an existing application against your skills and project history.
+- Receive an AI-generated 0–100 match score, explanation, detected requirements, matched and missing skills, and suggested roadmap skills.
+- Turn an analysis into a prefilled application draft. If SkillForge is configured, open a learning roadmap for suggested gaps.
+- Use a provider that supports the OpenAI-compatible Chat Completions endpoint and JSON-schema structured responses.
 
-Install the root development runner once, then install/restore both applications:
+The AI score is generated by the configured model and is separate from the deterministic saved-application score. Job-page extraction requires a publicly reachable, readable page; some sites block automated fetching, and the API refuses URLs that resolve to private or local addresses. Each signed-in user can make up to 10 AI requests per minute. CareerOS remains usable without an AI API key.
 
-```powershell
+### 📊 Dashboard and Workspace
+
+- See totals, application status counts, recent applications, average deterministic match score, and the most frequent missing **required** skills.
+- Search applications, skills, and projects from the workspace search.
+- Use a desktop sidebar and header or bottom navigation on narrower screens. Mobile dialogs appear as bottom sheets.
+- Switch between light and dark themes, use keyboard-accessible controls, and respect reduced-motion preferences.
+- View loading, empty, error, and delete-confirmation states throughout the workspace.
+
+### 🔐 Authentication and Ownership
+
+- Sign in with Auth0 Authorization Code + PKCE through the official Auth0 Next.js SDK. The session is stored in an encrypted HTTP-only cookie.
+- Provision the local user after login from Auth0 `/userinfo`.
+- Validate JWT signature, issuer, audience, and lifetime in the API.
+- Scope skills, projects, applications, and their links to the signed-in user. Other users' resources return `404`.
+- Deleting the local CareerOS account through `DELETE /api/users/me` cascades to its owned data. The workspace does not expose this action yet. This does **not** delete the central Auth0 identity or SkillForge account.
+
+## 🛠️ Technology Stack
+
+| Layer | Technologies |
+| --- | --- |
+| Client | Next.js 16 App Router, React 19, TypeScript, TanStack Query, Three.js, plain CSS, `next/font` Manrope |
+| Authentication | Auth0 Next.js SDK, OIDC, PKCE, JWT bearer validation |
+| API | .NET 10, ASP.NET Core Controllers, service layer, DTOs, OpenAPI, RFC 7807 Problem Details |
+| Data | PostgreSQL, Entity Framework Core, Npgsql, migrations |
+| AI | OpenAI-compatible Chat Completions API with JSON-schema responses |
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- .NET 10 SDK and the `dotnet-ef` tool.
+- Node.js 20.9 or newer and npm (the minimum Node version required by the installed Next.js package).
+- A PostgreSQL database, local or hosted.
+- An Auth0 tenant with a **Regular Web Application** and an API identifier.
+- Optional: an API key for a compatible AI provider and a SkillForge deployment.
+
+If `dotnet ef` is not installed, run `dotnet tool install --global dotnet-ef`.
+
+### 1. Install dependencies
+
+```bash
+git clone https://github.com/hashemi1997ali/careeros.git
+cd careeros
 npm install
 npm run setup
 ```
 
-After configuring the environment values described below, start the Next.js
-client and ASP.NET Core API together from the repository root:
+`npm run setup` installs client packages and restores server NuGet packages.
 
-```powershell
-npm run dev
-```
+### 2. Configure Auth0
 
-The client runs at `http://careeros.localhost:3000` and the API uses
-`http://localhost:4000`. Press `Ctrl+C` once to stop both processes. You can
-also run only one side with `npm run dev:web` or `npm run dev:api`.
+Create an Auth0 API and use its **Identifier** as both `AUTH0_AUDIENCE` in the client and `Oidc:Audience` in the server. Configure the CareerOS Regular Web Application with these local URLs:
 
-### Server
+| Auth0 setting | Local value |
+| --- | --- |
+| Allowed Callback URLs | `http://careeros.localhost:3000/auth/callback` |
+| Allowed Logout URLs | `http://careeros.localhost:3000` |
+| Allowed Web Origins | `http://careeros.localhost:3000` |
 
-From `server/`:
+Enable refresh tokens for the Auth0 application if you use the SDK's offline access and token refresh flow. The API's issuer must be the HTTPS URL for your tenant, such as `https://YOUR-TENANT.eu.auth0.com`.
 
-```powershell
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "YOUR_NPGSQL_CONNECTION_STRING"
+### 3. Configure the server
+
+From `server/`, store local credentials in .NET user secrets:
+
+```bash
+cd server
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=YOUR_HOST;Port=5432;Database=YOUR_DB;Username=YOUR_USER;Password=YOUR_PASSWORD;SSL Mode=Require"
 dotnet user-secrets set "Oidc:Issuer" "https://YOUR-TENANT.eu.auth0.com"
-dotnet user-secrets set "Oidc:Audience" "https://skillbridge-api"
-dotnet restore
+dotnet user-secrets set "Oidc:Audience" "https://YOUR-API-IDENTIFIER"
 dotnet ef database update
-dotnet run
+cd ..
 ```
 
-The PostgreSQL connection string must use Npgsql's key/value format rather than
-Neon's `postgresql://` URI. Example requests are in `server/server.http`.
+Use an Npgsql key/value connection string. If your provider gives you a `postgresql://` URI, convert it to Npgsql format. The complete configuration shape is in [`server/appsettings.json.sample`](server/appsettings.json.sample).
 
-### Client
+To enable AI, also set these server secrets. For example:
 
-Copy `client/.env.example` to `client/.env.local`, fill in the Auth0 and service
-URLs, and generate a 32-byte hexadecimal `AUTH0_SECRET`. Then run:
+```bash
+cd server
+dotnet user-secrets set "OpenAI:ApiKey" "YOUR_PROVIDER_API_KEY"
+dotnet user-secrets set "OpenAI:BaseUrl" "https://api.groq.com/openai/v1"
+dotnet user-secrets set "OpenAI:Model" "openai/gpt-oss-120b"
+cd ..
+```
 
-```powershell
-cd client
-npm install
+| Setting | Purpose | Code default if unset |
+| --- | --- | --- |
+| `OpenAI:ApiKey` | Provider API key | Empty; AI calls are unavailable |
+| `OpenAI:BaseUrl` | API base URL | `https://api.openai.com/v1` |
+| `OpenAI:Model` | Provider model name | `gpt-4.1-mini` |
+
+The committed development settings currently include Groq's base URL and model, but no API key. Set all three values together for your chosen provider.
+
+### 4. Configure the client
+
+Copy the environment template:
+
+```bash
+cp client/.env.example client/.env.local
+```
+
+On Windows PowerShell, use `Copy-Item client/.env.example client/.env.local` instead. Fill in:
+
+| Variable | Purpose | Local example |
+| --- | --- | --- |
+| `APP_BASE_URL` | Public CareerOS origin | `http://careeros.localhost:3000` |
+| `AUTH0_DOMAIN` | Auth0 tenant hostname, without `https://` | `YOUR-TENANT.eu.auth0.com` |
+| `AUTH0_CLIENT_ID` | CareerOS Auth0 application client ID | From Auth0 |
+| `AUTH0_CLIENT_SECRET` | CareerOS Auth0 application client secret | From Auth0 |
+| `AUTH0_SECRET` | 32-byte hex session encryption secret | Generate with `openssl rand -hex 32` |
+| `AUTH0_AUDIENCE` | Auth0 API identifier; must match `Oidc:Audience` | `https://YOUR-API-IDENTIFIER` |
+| `SERVER_URL` | Server-side URL for the CareerOS API | `http://127.0.0.1:4000` |
+| `SKILLS_APP_URL` | Optional SkillForge browser URL for links and roadmaps | `http://skillforge.localhost:3002` |
+
+`SERVER_URL` and the optional `SKILLS_APP_URL` are read on the server side. `SKILLS_APP_URL` may be omitted when you only run CareerOS. See [`client/.env.example`](client/.env.example) for the source template. Keep `.env.local` and all secrets out of Git.
+
+### 5. Run the project
+
+From the repository root:
+
+```bash
 npm run dev
 ```
 
-For the local SSO setup, open `http://careeros.localhost:3000`; using separate
-`*.localhost` hostnames prevents the two applications from accidentally sharing
-cookies merely because they use the same `localhost` host.
+Open **http://careeros.localhost:3000**. The API listens on **http://localhost:4000**. The local `careeros.localhost` hostname is intentional: separate `*.localhost` hosts keep CareerOS and SkillForge browser cookies separate. `APP_BASE_URL` redirects other local hostnames to the configured one. Press `Ctrl+C` to stop both development processes.
 
-## API
+Sample authenticated API requests are in [`server/server.http`](server/server.http).
 
-All resource endpoints require a bearer token. Health endpoints are anonymous.
+## 📜 Available Scripts
+
+From the repository root:
+
+| Command | Description |
+| --- | --- |
+| `npm run setup` | Install client packages and restore server packages |
+| `npm run dev` | Run the API and client together |
+| `npm run dev:api` | Run the API with `dotnet watch` on port 4000 |
+| `npm run dev:web` | Run the Next.js client |
+| `npm run build` | Build API and client for production |
+| `npm run build:api` | Build the Release API |
+| `npm run build:web` | Build the Next.js client |
+| `npm run lint` | Run client ESLint |
+| `npm run typecheck` | Type-check the client |
+
+From `client/`, `npm run dev`, `npm run build`, `npm run start`, `npm run lint`, and `npm run typecheck` are also available.
+
+## 🛣️ API Reference
+
+All resource and AI endpoints require a valid access token. The health endpoints and the development OpenAPI document are anonymous.
+
+```http
+Authorization: Bearer ACCESS_TOKEN
+```
 
 ### Account
 
 | Method | Route | Purpose |
-|---|---|---|
-| POST | `/api/users/sync` | Provision/update the signed-in user |
-| GET | `/api/users/me` | Return the local signed-in user |
-| DELETE | `/api/users/me` | Delete the local user and owned CareerOS data |
+| --- | --- | --- |
+| `POST` | `/api/users/sync` | Provision or update the local user from Auth0 `/userinfo` |
+| `GET` | `/api/users/me` | Get the local user |
+| `DELETE` | `/api/users/me` | Delete the local user and owned CareerOS data |
 
 ### Skills
 
 | Method | Route | Purpose |
-|---|---|---|
-| GET | `/api/skills` | List/filter owned skills (`search`, `category`, `level`) |
-| GET | `/api/skills/{id}` | Get one skill |
-| POST | `/api/skills` | Create a skill |
-| PUT | `/api/skills/{id}` | Replace a skill |
-| DELETE | `/api/skills/{id}` | Delete a skill |
-
-Skill levels are `Beginner`, `Intermediate`, and `Advanced`.
+| --- | --- | --- |
+| `GET` | `/api/skills` | List owned skills; supports `search`, `category`, and `level` |
+| `GET` | `/api/skills/suggestions?search=...` | Search the shared catalog; returns up to 12 suggestions for queries of at least two characters |
+| `GET` | `/api/skills/{id}` | Get one owned skill |
+| `POST` | `/api/skills` | Add a skill to your profile |
+| `PUT` | `/api/skills/{id}` | Update a profile skill |
+| `DELETE` | `/api/skills/{id}` | Remove a profile skill |
 
 ### Projects
 
 | Method | Route | Purpose |
-|---|---|---|
-| GET | `/api/projects` | List/filter owned projects (`search`, `skillId`) |
-| GET | `/api/projects/{id}` | Get a project and its skills |
-| POST | `/api/projects` | Create a project with `skillIds` |
-| PUT | `/api/projects/{id}` | Replace a project and its skill links |
-| DELETE | `/api/projects/{id}` | Delete a project |
-| POST | `/api/projects/{projectId}/skills/{skillId}` | Link an owned skill |
-| DELETE | `/api/projects/{projectId}/skills/{skillId}` | Unlink an owned skill |
+| --- | --- | --- |
+| `GET` | `/api/projects` | List owned projects; supports `search` and `skillId` |
+| `GET` | `/api/projects/{id}` | Get one project and its skills |
+| `GET` | `/api/projects/{id}/preview` | Check whether the project's live site allows an embedded preview |
+| `POST` | `/api/projects` | Create a project with optional `skillIds` |
+| `PUT` | `/api/projects/{id}` | Update a project and its skill links |
+| `DELETE` | `/api/projects/{id}` | Delete a project |
+| `POST` | `/api/projects/{projectId}/skills/{skillId}` | Link an owned skill |
+| `DELETE` | `/api/projects/{projectId}/skills/{skillId}` | Unlink an owned skill |
 
-### Job applications
-
-| Method | Route | Purpose |
-|---|---|---|
-| GET | `/api/job-applications` | List/filter owned applications (`status`, `search`) |
-| GET | `/api/job-applications/{id}` | Get an application and its requirements |
-| POST | `/api/job-applications` | Create an application |
-| PUT | `/api/job-applications/{id}` | Replace an application and requirements |
-| PATCH | `/api/job-applications/{id}/status` | Update pipeline status |
-| GET | `/api/job-applications/{id}/match` | Calculate weighted match and skill gaps |
-| DELETE | `/api/job-applications/{id}` | Delete an application |
-
-Application statuses are `Saved`, `Applied`, `HrInterview`,
-`TechnicalInterview`, `Offer`, `Rejected`, and `Withdrawn`.
-
-### Dashboard and operations
+### Job Applications
 
 | Method | Route | Purpose |
-|---|---|---|
-| GET | `/api/dashboard` | User-scoped aggregates, match average, and missing skills |
-| GET | `/health/live` | Process liveness check |
-| GET | `/health/ready` | Readiness check including PostgreSQL |
-| GET | `/health` | Readiness alias for hosting providers |
-| GET | `/openapi/v1.json` | OpenAPI document in Development |
+| --- | --- | --- |
+| `GET` | `/api/job-applications` | List owned applications; supports `status` and `search` |
+| `GET` | `/api/job-applications/{id}` | Get an application and its requirements |
+| `POST` | `/api/job-applications` | Create an application |
+| `PUT` | `/api/job-applications/{id}` | Update an application and its requirements |
+| `PATCH` | `/api/job-applications/{id}/status` | Change its pipeline status |
+| `GET` | `/api/job-applications/{id}/match` | Calculate the deterministic match score and gaps |
+| `DELETE` | `/api/job-applications/{id}` | Delete an application |
 
-## Deployment notes
+### AI
 
-- `server/Dockerfile` builds the .NET service for Render.
-- The server validates tokens but has no OIDC client secret; only the Next.js
-  client obtains tokens and therefore needs the client secret.
-- `User.Id` is a UUID because it crosses identity/service boundaries. Internal
-  aggregate keys remain compact database-generated integers; authorization is
-  enforced by owner foreign keys rather than by making identifiers unguessable.
-- Apply database migrations as a dedicated deployment step before starting or
-  scaling the API; the running application never changes the schema itself.
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `POST` | `/api/ai/application-extract` | Extract application details from `text` and/or `url` |
+| `POST` | `/api/ai/job-analyze` | Analyze `jobText`, `url`, or `applicationId` against the user's profile |
+
+### Dashboard and Operations
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/dashboard` | User-scoped totals, status counts, average match, missing skills, and recent applications |
+| `GET` | `/health/live` | Process liveness |
+| `GET` | `/health/ready` | Readiness including PostgreSQL |
+| `GET` | `/health` | Readiness alias |
+| `GET` | `/openapi/v1.json` | OpenAPI document in Development only |
+
+The Next.js client exposes same-origin `/api/*` BFF routes that attach the access token server-side. If the API reports that the signed-in user has no local record (for example after a database reset), the BFF provisions it again from Auth0 and retries the request once.
+
+## 📌 Production Notes
+
+- Apply EF Core migrations as a deployment step before starting or scaling the API. The running API does not migrate its own database.
+- Supply server configuration through environment variables such as `ConnectionStrings__DefaultConnection`, `Oidc__Issuer`, `Oidc__Audience`, `OpenAI__ApiKey`, `OpenAI__BaseUrl`, and `OpenAI__Model`. Configure array entries such as `Cors__AllowedOrigins__0` for the deployed client origin if direct browser API calls are needed.
+- Configure the production Auth0 callback, logout, and web origins to match the deployed client URL. Set client environment variables in the hosting platform; omit `APP_BASE_URL` for dynamic Vercel preview URLs as indicated by the template.
+- [`server/Dockerfile`](server/Dockerfile) packages the API for container hosting. The repository also includes a GitHub Actions workflow that builds and deploys the API to Azure Web App on relevant pushes to `main`.
+- The API validates tokens but holds no Auth0 OIDC client secret. The Next.js BFF obtains and forwards access tokens.
+- `User.Id` is a UUID; internal aggregate keys are database-generated integers. Ownership is enforced through user relationships, not through unguessable IDs.
+- Keep `.env.local`, user secrets, database credentials, Auth0 secrets, and AI keys out of the repository.

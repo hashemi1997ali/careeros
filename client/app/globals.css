@@ -1132,13 +1132,17 @@ td[data-label="Company"] .cell-stack > * { min-width: 0; overflow: hidden; text-
 
 /* Skeleton screens (components/skeleton.tsx). Every bone shares one fixed background, so a single
    highlight sweeps across the whole page instead of each box shimmering on its own. */
-.skeleton {
-  display: block; flex: none; max-width: 100%;
+.skeleton, .skeleton-text {
   background-color: var(--surface-3);
   background-image: linear-gradient(100deg, transparent 35%, color-mix(in srgb, var(--surface) 75%, transparent) 50%, transparent 65%);
   background-size: 200vw 100%; background-attachment: fixed; background-repeat: no-repeat;
   animation: skeleton-sweep 1.6s var(--ease-inout) infinite;
 }
+.skeleton { display: block; flex: none; max-width: 100%; }
+/* Text skeleton: the real (static) text keeps its layout, so titles wrap exactly as they will once loaded,
+   but is invisible; every line gets its own bar. Icons inside follow the text colour and vanish too. */
+.skeleton-text { color: transparent !important; border-radius: 6px; -webkit-box-decoration-break: clone; box-decoration-break: clone; user-select: none; pointer-events: none; }
+:root[data-theme="dark"] .skeleton-text,
 :root[data-theme="dark"] .skeleton { background-color: var(--surface-2); background-image: linear-gradient(100deg, transparent 35%, rgb(255 255 255 / 0.06) 50%, transparent 65%); }
 @keyframes skeleton-sweep { from { background-position: 100vw 0; } to { background-position: -100vw 0; } }
 .page-skeleton { animation: careeros-fade var(--dur-slow) var(--ease-out) 0.12s both; } /* fast loads never flash it */
@@ -1159,6 +1163,7 @@ td[data-label="Company"] .cell-stack > * { min-width: 0; overflow: hidden; text-
 .skeleton-grow { flex: 1 1 280px; }
 .skeleton-select { flex: 0 1 240px; }
 .skeleton-card { cursor: default; pointer-events: none; }
+.analyzer-note.is-placeholder { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); } /* an inset line, not a border, so the text wraps as in the real note */ /* an empty box while loading, not the blue note */
 .skeleton-media { min-height: 176px; border-radius: var(--radius-xl); overflow: hidden; }
 .skeleton-explorer { display: grid; grid-template-columns: minmax(0, 1fr) 330px; min-height: 690px; padding: 0; overflow: hidden; } /* Skill Core: sphere + category list */
 .skeleton-explorer-stage { display: flex; flex-direction: column; padding: var(--space-lg); }
@@ -1328,7 +1333,7 @@ td[data-label="Company"] .cell-stack > * { min-width: 0; overflow: hidden; text-
   .mobile-nav a span { font-size: 0.62rem; }
 }
 
-@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; background-image: none; } }
+@media (prefers-reduced-motion: reduce) { .skeleton, .skeleton-text { animation: none; background-image: none; } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; transition-duration: 1ms !important; scroll-behavior: auto !important; }
 }

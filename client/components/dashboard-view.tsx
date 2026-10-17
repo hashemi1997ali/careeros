@@ -8,7 +8,7 @@ import { useQuery } from '@tanstack/react-query'
 import { EmptyState } from '@/components/empty-state'
 import { Icon } from '@/components/icons'
 import { usePageState } from '@/components/page-state'
-import { PanelTitle } from '@/components/panel-title'
+import { PanelHeading, type PanelHeadingProps } from '@/components/panel-title'
 import { SkillGraph } from '@/components/skill-graph'
 import { useCareerUser, useSkillsAppUrl } from '@/components/app-shell'
 import { apiFetch } from '@/lib/api-client'
@@ -29,23 +29,23 @@ const pipeline: Array<{ key: ApplicationStatus; tone: string }> = [
   { key: 'Withdrawn', tone: 'muted' },
 ]
 
-// Panel headings are static, so the loading skeleton shows the same ones (and their wrapping) as the loaded page.
-const panelHeadings = {
-  pipeline: <div className="panel-heading"><PanelTitle icon="briefcase" title="Application pipeline" subtitle="Roles by current stage." /><Link className="text-link" href="/applications">View all<Icon name="arrow" size={15} /></Link></div>,
-  gaps: <PanelTitle icon="chart" title="Top skill gaps" subtitle="Required skills missing across your roles." />,
-  recent: <div className="panel-heading"><PanelTitle icon="briefcase" title="Recent applications" subtitle="Your latest updated roles." /><Link className="text-link" href="/applications">View all<Icon name="arrow" size={15} /></Link></div>,
-  skills: <div className="panel-heading"><PanelTitle icon="brain" title="Skill profile" subtitle="Your categories at a glance." /><Link className="text-link" href="/skills/graph">Skill Core<Icon name="arrow" size={15} /></Link></div>,
-}
+// Panel headings, shared with the loading skeleton (drawn there as empty bars that wrap like the real text).
+const panels = {
+  pipeline: { icon: 'briefcase', title: 'Application pipeline', subtitle: 'Roles by current stage.', link: { href: '/applications', label: 'View all' } },
+  gaps: { icon: 'chart', title: 'Top skill gaps', subtitle: 'Required skills missing across your roles.' },
+  recent: { icon: 'briefcase', title: 'Recent applications', subtitle: 'Your latest updated roles.', link: { href: '/applications', label: 'View all' } },
+  skills: { icon: 'brain', title: 'Skill profile', subtitle: 'Your categories at a glance.', link: { href: '/skills/graph', label: 'Skill Core' } },
+} satisfies Record<string, PanelHeadingProps>
 
 function DashboardSkeleton() {
   return <PageSkeleton label="Loading your dashboard">
     <section className="dashboard-grid">
       <article className="panel dashboard-summary">{repeat(3, index => <div key={index} className="summary-figure"><Line lh="calc(0.8rem * 1.55)" glyph={11} w={110} style={{ gridColumn: '1 / -1' }} /* like .summary-label: its own row on phones */ /><div className="metric-value"><Bone w={64} h="1em" r={10} /></div><Line lh="calc(0.86rem * 1.55)" glyph={11} w="min(140px, 70%)" /></div>)}</article>
       <div className="skeleton-media skeleton-photo"><Bone h="100%" r="inherit" /></div>
-      <article className="panel pipeline-panel">{panelHeadings.pipeline}<Bone h={14} r={999} style={{ marginBottom: 'var(--space-lg)' }} /><div className="pipeline-list">{repeat(7, index => <div key={index} className="pipeline-stage"><Bone w={8} h={8} r="50%" /><Bone w="55%" h={12} /><Bone w={14} h={16} style={{ marginLeft: 'auto' }} /></div>)}</div></article>
-      <article className="panel gap-panel">{panelHeadings.gaps}<div className="gap-list">{repeat(3, index => <div key={index} className="skeleton-gap-row"><Line lh={22} glyph={12} w="7rem" /><Bone h={8} r={999} /><Bone w={16} h={12} /></div>)}</div><div className="gap-panel-action"><Bone h={44} r={999} /></div></article>
-      <article className="panel skill-summary-panel">{panelHeadings.skills}<Bone h="auto" r="50%" style={{ aspectRatio: '1', maxWidth: 320, margin: '0 auto' }} /></article>
-      <article className="panel applications-panel">{panelHeadings.recent}<div className="skeleton-recent">{repeat(3, index => <div key={index} className="skeleton-recent-row"><Stack gap={2}><Line lh={22} glyph={13} w="min(240px, 70%)" /><Line lh={22} glyph={12} w="min(180px, 55%)" /></Stack><Stack gap={2}><Line cardLabel lh={17} glyph={9} w={50} /><Bone w={86} h={26} r={999} /></Stack></div>)}</div></article>
+      <article className="panel pipeline-panel"><PanelHeading {...panels.pipeline} placeholder /><Bone h={14} r={999} style={{ marginBottom: 'var(--space-lg)' }} /><div className="pipeline-list">{repeat(7, index => <div key={index} className="pipeline-stage"><Bone w={8} h={8} r="50%" /><Bone w="55%" h={12} /><Bone w={14} h={16} style={{ marginLeft: 'auto' }} /></div>)}</div></article>
+      <article className="panel gap-panel"><PanelHeading {...panels.gaps} placeholder /><div className="gap-list">{repeat(3, index => <div key={index} className="skeleton-gap-row"><Line lh={22} glyph={12} w="7rem" /><Bone h={8} r={999} /><Bone w={16} h={12} /></div>)}</div><div className="gap-panel-action"><Bone h={44} r={999} /></div></article>
+      <article className="panel skill-summary-panel"><PanelHeading {...panels.skills} placeholder /><Bone h="auto" r="50%" style={{ aspectRatio: '1', maxWidth: 320, margin: '0 auto' }} /></article>
+      <article className="panel applications-panel"><PanelHeading {...panels.recent} placeholder /><div className="skeleton-recent">{repeat(3, index => <div key={index} className="skeleton-recent-row"><Stack gap={2}><Line lh={22} glyph={13} w="min(240px, 70%)" /><Line lh={22} glyph={12} w="min(180px, 55%)" /></Stack><Stack gap={2}><Line cardLabel lh={17} glyph={9} w={50} /><Bone w={86} h={26} r={999} /></Stack></div>)}</div></article>
     </section>
   </PageSkeleton>
 }
@@ -118,7 +118,7 @@ export function DashboardView() {
           </article>
 
           <article className="panel pipeline-panel">
-            {panelHeadings.pipeline}
+            <PanelHeading {...panels.pipeline} />
             <div className="pipeline-bar" role="img" aria-label={`${pipelineTotal} applications across ${pipeline.length} stages`}>
               {pipelineTotal ? pipeline.map(stage => (byStatus[stage.key] ?? 0) > 0 && <i key={stage.key} className={`status-bar ${stage.tone}`} style={{ flexGrow: byStatus[stage.key] ?? 0 }} title={`${formatApplicationStatus(stage.key)}: ${byStatus[stage.key]}`} />) : <i className="status-bar empty" />}
             </div>
@@ -134,7 +134,7 @@ export function DashboardView() {
           </article>
 
           <article className="panel gap-panel">
-            {panelHeadings.gaps}
+            <PanelHeading {...panels.gaps} />
             {gaps.length ? (
               <ol className="gap-list">
                 {gaps.slice(0, 3).map((skill, index) => (
@@ -162,7 +162,7 @@ export function DashboardView() {
           </article>
 
           <article className="panel applications-panel">
-            {panelHeadings.recent}
+            <PanelHeading {...panels.recent} />
             <div className="dashboard-list-slot">
               {dashboard?.recentApplications.length ? (
                 <div className="data-table dashboard-applications-table" role="region" aria-label="Recent applications">
@@ -196,7 +196,7 @@ export function DashboardView() {
           </article>
 
           <article className="panel skill-summary-panel">
-            {panelHeadings.skills}
+            <PanelHeading {...panels.skills} />
             <SkillGraph skills={skills} showLevels={false} showCenterLabel={false} showCaption categoryMode />
           </article>
       </section>

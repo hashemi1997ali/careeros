@@ -25,15 +25,24 @@ const formatSalary = (value: number | null | undefined) => value === null || val
 
 const formatApplicationStatus = (status: string | null | undefined) => status ? formatStatusLabel(status as ApplicationStatus) : '–'
 
-// Static panel titles, shared with the loading skeleton so it wraps exactly like the loaded page.
-const inputTitle = <PanelTitle icon="briefcase" title="Choose a role or paste a posting" subtitle="One source at a time." />
-const resultTitle = <PanelTitle icon="chart" title="Analysis result" subtitle="Score, gaps and next steps." />
+// Shared with the loading skeleton, which draws them as empty bars that wrap exactly like the real text.
+const inputTitle = { icon: 'briefcase', title: 'Choose a role or paste a posting', subtitle: 'One source at a time.' } as const
+const resultTitle = { icon: 'chart', title: 'Analysis result', subtitle: 'Score, gaps and next steps.' } as const
+
+function AnalyzerNote({ placeholder = false }: { placeholder?: boolean }) {
+  const text = (value: string) => placeholder ? <span className="skeleton-text">{value}</span> : value
+  return <div className={placeholder ? 'analyzer-note is-placeholder' : 'analyzer-note'} aria-hidden={placeholder || undefined}>
+    {placeholder ? <Bone w={20} h={20} r={6} style={{ marginTop: 2 }} /> : <Icon name="sparkles" />}
+    <div><strong>{text('AI extraction and skill analysis')}</strong><p>{text('Pick a saved application or paste a posting to compare it with your skills.')}</p></div>
+  </div>
+}
 
 function AnalyzerSkeleton() {
   return <PageSkeleton label="Loading the analyzer">
+    <AnalyzerNote placeholder />
     <section className="analyzer-grid">
       <article className="panel analyzer-input">
-        {inputTitle}
+        <PanelTitle {...inputTitle} placeholder />
         <Line lh={22} glyph={12} w={120} />
         <Bone h={44} r={12} />
         {/* label + block hint: the label is a grid with an 8px gap, the hint adds 2px */}
@@ -42,7 +51,7 @@ function AnalyzerSkeleton() {
         <div className="analyzer-actions"><Bone h={44} r={999} /></div>
       </article>
       {/* Mirrors the empty state the panel shows once the page has loaded. */}
-      <article className="panel analyzer-result">{resultTitle}<div className="analysis-empty"><Bone w={168} h={168} r="50%" /><Line lh={31} glyph={18} w={280} style={{ marginTop: 'var(--space-2xl)' }} /><Line lh={23} glyph={12} w={300} /></div></article>
+      <article className="panel analyzer-result"><PanelTitle {...resultTitle} placeholder /><div className="analysis-empty"><Bone w={168} h={168} r="50%" /><Line lh={31} glyph={18} w={280} style={{ marginTop: 'var(--space-2xl)' }} /><Line lh={23} glyph={12} w={300} /></div></article>
     </section>
   </PageSkeleton>
 }
@@ -121,14 +130,15 @@ export default function JobAnalyzerPage() {
 
   const pageState = usePageState([applicationsQuery], 'Loading the analyzer', <AnalyzerSkeleton />)
   // The heading is static, so it renders for real while the data below loads (no shift when it arrives).
-  const heading = <><section className="page-heading"><div><p className="eyebrow">ROLE FIT</p><h1>Job match analyzer</h1><p>Compare a job with your profile.</p></div></section><div className="analyzer-note"><Icon name="sparkles" /><div><strong>AI extraction and skill analysis</strong><p>Pick a saved application or paste a posting to compare it with your skills.</p></div></div></>
+  const heading = <section className="page-heading"><div><p className="eyebrow">ROLE FIT</p><h1>Job match analyzer</h1><p>Compare a job with your profile.</p></div></section>
   if (pageState) return <>{heading}{pageState}</>
 
   return <>
     {heading}
+    <AnalyzerNote />
     <section className="analyzer-grid">
       <article className="panel analyzer-input">
-        {inputTitle}
+        <PanelTitle {...inputTitle} />
         <>
           {applications.length ? <><label htmlFor="application-select">Saved application</label><select disabled={aiPending} id="application-select" value={selectedId ?? ''} onChange={event => selectApplication(event.target.value)}><option value="">Select an application</option>{applications.map(application => <option key={application.id} value={application.id}>{application.position} · {application.company}</option>)}</select>{selected && <div className="selected-role-card"><StatusBadge status={selected.status} /><h2>{selected.position}</h2><p>{selected.company}</p><div className="requirement-preview"><strong>{selected.requirements.length} requirements</strong>{selected.requirements.length ? <ul className="badge-list">{selected.requirements.slice(0, 8).map(requirement => <li key={requirement.id}><Badge><span>{requirement.name}</span><small>{requirement.isRequired ? 'Required' : 'Optional'}</small></Badge></li>)}{selected.requirements.length > 8 && <li><Badge tone="more">+{selected.requirements.length - 8} more skills</Badge></li>}</ul> : <p>This application does not have requirements yet.</p>}</div></div>} </> : <p className="analyzer-help">No saved applications yet. You can still paste a job posting below, or <Link className="text-link" href="/applications?new=1">add an application</Link>.</p>}
           {!selectedId && <><label htmlFor="job-posting-text">Job posting text <span className="field-hint">Use this instead of selecting an application</span></label><textarea disabled={aiPending} id="job-posting-text" className="analyzer-job-text" maxLength={30000} value={jobText} onChange={event => typeJobText(event.target.value)} placeholder="Paste text copied from LinkedIn, Indeed, or another job board..." /></>}
@@ -136,7 +146,7 @@ export default function JobAnalyzerPage() {
         </>
       </article>
       <article className="panel analyzer-result">
-        {resultTitle}
+        <PanelTitle {...resultTitle} />
         {aiPending ? <AnalysisResultSkeleton /> : aiAnalysis ? <>
           <div className="analysis-score"><ScoreRing score={aiAnalysis.matchScore} /></div>
           <div className="ai-analysis-summary"><strong>{aiAnalysis.summary}</strong><p>{aiAnalysis.explanation}</p></div>

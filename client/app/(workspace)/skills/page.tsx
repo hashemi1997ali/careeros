@@ -129,10 +129,12 @@ export default function SkillsPage() {
   const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); if (name.trim().length < 2 || cat.trim().length < 2) { setError('Skill name and category need at least two characters.'); return }; save.mutate({ id: editing?.id ?? null, payload: { name: name.trim(), category: cat.trim(), level, startDate: startDate || null } }) }
 
   const pageState = usePageState([q], 'Loading your skills', <SkillsSkeleton />)
-  if (pageState) return pageState
+  // The heading is static, so it renders for real while the data below loads (no shift when it arrives).
+  const heading = <section className="page-heading"><div><p className="eyebrow">YOUR CAPABILITIES</p><h1>Skills</h1><p>Track your skills and evidence.</p></div><div className="talent-page-actions"><Link className="button button-ghost" href="/skills/graph"><Icon name="brain" size={17}/>Skill Core</Link><button className="button button-primary" type="button" onClick={openCreate}><Icon name="plus" />Add skill</button></div></section>
+  if (pageState) return <>{heading}{pageState}</>
 
   return <>
-    <section className="page-heading"><div><p className="eyebrow">YOUR CAPABILITIES</p><h1>Skills</h1><p>Track your skills and evidence.</p></div><div className="talent-page-actions"><Link className="button button-ghost" href="/skills/graph"><Icon name="brain" size={17}/>Skill Core</Link><button className="button button-primary" type="button" onClick={openCreate}><Icon name="plus" />Add skill</button></div></section>
+    {heading}
     <ResourceToolbar search={search} onSearch={setSearch} searchLabel="Search skills" filters={categories.map(value => ({ value, label: value, count: list.facets[value] ?? 0 }))} filter={category} onFilter={setCategory} sort={sort} onSort={setSort} sortOptions={[{value:'name',label:'Name A–Z'},{value:'level',label:'Highest proficiency'},{value:'evidence',label:'Most project evidence'}]} count={list.total} total={list.facets.All ?? 0} loading={q.isPending} onReset={search || category !== 'All' ? () => { setSearch(''); setCategory('All') } : undefined}/>
     {visible.length ? <><section id="skill-list" className="card-grid">{visible.map(skill => <article className="skill-card" key={skill.id} onClick={event => { if (!(event.target as HTMLElement).closest('button, [role="dialog"]')) openDetails(skill) }}>
       <div className="skill-card-heading">

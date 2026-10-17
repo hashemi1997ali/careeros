@@ -181,10 +181,12 @@ export default function ProjectsPage() {
   }
 
   const pageState = usePageState([projectsQ, skillsQ], 'Loading your projects', <ProjectsSkeleton />)
-  if (pageState) return pageState
+  // The heading is static, so it renders for real while the data below loads (no shift when it arrives).
+  const heading = <section className="page-heading"><div><p className="eyebrow">PROOF OF WORK</p><h1>Projects</h1><p>Show what you built and the skills behind it.</p></div><button className="button button-primary" type="button" onClick={openCreate}><Icon name="plus" />Add project</button></section>
+  if (pageState) return <>{heading}{pageState}</>
 
   return <>
-    <section className="page-heading"><div><p className="eyebrow">PROOF OF WORK</p><h1>Projects</h1><p>Show what you built and the skills behind it.</p></div><button className="button button-primary" type="button" onClick={openCreate}><Icon name="plus" />Add project</button></section>
+    {heading}
     <ResourceToolbar search={search} onSearch={setSearch} searchLabel="Search projects" filterLabel="Links" filter={filter} onFilter={setFilter} filters={[
       { value: 'All', label: 'All projects', count: list.facets.All ?? 0 },
       { value: 'live', label: 'With live demo', count: list.facets.live ?? 0 },

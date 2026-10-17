@@ -13,10 +13,12 @@ import { SkillCoreSkeleton } from '@/components/skeleton'
 export default function SkillGraphPage() {
   const query = useQuery({ queryKey: ['skills'], queryFn: ({ signal }) => apiFetch<Skill[]>('/api/skills', { signal }) })
   const pageState = usePageState([query], 'Loading Skill Core', <SkillCoreSkeleton />)
-  if (pageState) return pageState
+  // The heading is static, so it renders for real while the data below loads (no shift when it arrives).
+  const heading = <section className="page-heading"><div><p className="eyebrow">YOUR SKILLS, CONNECTED</p><h1>Skill Core</h1><p>Explore your skills and their connections.</p></div><div className="talent-page-actions"><Link className="button button-ghost" href="/skills"><Icon name="grid" size={17}/>Skills list</Link><Link className="button button-primary" href="/skills?new=1"><Icon name="plus" size={17}/>Add skill</Link></div></section>
+  if (pageState) return <>{heading}{pageState}</>
 
   return <>
-    <section className="page-heading"><div><p className="eyebrow">YOUR SKILLS, CONNECTED</p><h1>Skill Core</h1><p>Explore your skills and their connections.</p></div><div className="talent-page-actions"><Link className="button button-ghost" href="/skills"><Icon name="grid" size={17}/>Skills list</Link><Link className="button button-primary" href="/skills?new=1"><Icon name="plus" size={17}/>Add skill</Link></div></section>
+    {heading}
     {query.data?.length ? <TalentGraph skills={query.data}/> : <section className="panel"><EmptyState title="Your Skill Core starts with one skill" description="Add skills and proficiency levels to see them orbit your skill center." action={<Link className="button button-primary" href="/skills?new=1"><Icon name="plus" size={17}/>Add your first skill</Link>}/></section>}
   </>
 }

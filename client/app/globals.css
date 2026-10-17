@@ -1143,6 +1143,14 @@ td[data-label="Company"] .cell-stack > * { min-width: 0; overflow: hidden; text-
 @keyframes skeleton-sweep { from { background-position: 100vw 0; } to { background-position: -100vw 0; } }
 .page-skeleton { animation: careeros-fade var(--dur-slow) var(--ease-out) 0.12s both; } /* fast loads never flash it */
 .skeleton-stack { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.skeleton-line { display: flex; align-items: center; flex: none; max-width: 100%; }
+.skeleton-card-label { display: none; } /* cell labels exist only where tables turn into cards */
+.skeleton-clip { overflow: hidden; }
+.skeleton-photo { grid-area: rem; }
+.skeleton-gap-row { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; }
+.skeleton-recent { padding-top: 31px; } /* the real list has a table header row */
+.skeleton-recent-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); padding: 14px 12px; border-bottom: 1px solid var(--line); }
+.skeleton-recent-row:last-child { border-bottom: 0; }
 .page-heading .skeleton-stack { flex: 1 1 320px; }
 .skeleton-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
 .skeleton-nowrap { flex-wrap: nowrap; }
@@ -1152,13 +1160,16 @@ td[data-label="Company"] .cell-stack > * { min-width: 0; overflow: hidden; text-
 .skeleton-select { flex: 0 1 240px; }
 .skeleton-card { cursor: default; pointer-events: none; }
 .skeleton-media { min-height: 176px; border-radius: var(--radius-xl); overflow: hidden; }
-.skeleton-explorer { display: grid; grid-template-columns: minmax(0, 1fr) 330px; min-height: min(640px, 80vh); padding: 0; overflow: hidden; } /* Skill Core: sphere + category list */
+.skeleton-explorer { display: grid; grid-template-columns: minmax(0, 1fr) 330px; min-height: 690px; padding: 0; overflow: hidden; } /* Skill Core: sphere + category list */
 .skeleton-explorer-stage { display: flex; flex-direction: column; padding: var(--space-lg); }
 .skeleton-explorer-side { display: grid; align-content: start; gap: var(--space-md); padding: var(--space-lg); border-left: 1px solid var(--line); }
-@media (max-width: 1250px) { .skeleton-explorer { grid-template-columns: minmax(0, 1fr); } .skeleton-explorer-side { border-left: 0; border-top: 1px solid var(--line); } }
+/* Heights mirror the real explorer (talent-graph.css) at each breakpoint. */
+@media (max-width: 1250px) { .skeleton-explorer { grid-template-columns: minmax(0, 1fr); min-height: 0; } .skeleton-explorer-stage { min-height: 640px; } .skeleton-explorer-side { min-height: 570px; border-left: 0; border-top: 1px solid var(--line); } }
+@media (max-width: 900px) { .skeleton-explorer-stage { min-height: 540px; } }
+@media (max-width: 520px) { .skeleton-explorer-stage { min-height: 480px; } .skeleton-explorer-side { min-height: 650px; } }
 .skeleton-tile { height: 200px; }
 .skeleton-table { display: grid; }
-.skeleton-table-row { display: grid; grid-template-columns: minmax(0, 1fr) 120px 170px 130px; align-items: center; gap: var(--space-md); padding: 16px 12px; border-bottom: 1px solid var(--line); }
+.skeleton-table-row { display: grid; grid-template-columns: minmax(0, 1fr) 120px 170px 160px; align-items: center; gap: var(--space-md); padding: 14px 12px; border-bottom: 1px solid var(--line); }
 .skeleton-table-row:last-child { border-bottom: 0; }
 .skeleton-analysis { display: grid; justify-items: center; gap: var(--space-lg); padding-top: var(--space-md); }
 .skeleton-analysis > .skeleton-stack { width: 100%; }
@@ -1239,8 +1250,13 @@ td[data-label="Company"] .cell-stack > * { min-width: 0; overflow: hidden; text-
 @media (max-width: 1099px) {
   /* Tables become stacked cards */
   .skeleton-table { gap: 10px; }
-  .skeleton-table-row { grid-template-columns: 1fr 1fr; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); }
-  .skeleton-table-row > :first-child, .skeleton-table-row > :last-child { grid-column: 1 / -1; }
+  .skeleton-table-row { grid-template-columns: 1fr 1fr; gap: 10px 12px; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); }
+  .skeleton-table-row > :first-child { grid-column: 1 / -1; }
+  .skeleton-table-row > :last-child { grid-column: 1 / -1; padding-top: 10px; border-top: 1px solid var(--line); }
+  .skeleton-card-label { display: flex; }
+  .skeleton-recent { display: grid; gap: 10px; padding-top: 0; }
+  .skeleton-recent-row { flex-direction: column; align-items: stretch; gap: 10px; min-height: 137px; padding: 14px; /* the card's company line is set larger (1.02rem) */ border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); }
+  .skeleton-recent-row:last-child { border-bottom: 1px solid var(--line); }
   .data-table table, .data-table tbody, .data-table tr, .data-table td { display: block; width: 100%; }
   .data-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   .data-table tbody { display: grid; gap: 10px; }
@@ -1274,6 +1290,7 @@ td[data-label="Company"] .cell-stack > * { min-width: 0; overflow: hidden; text-
   .summary-meter { width: 120px; }
   .summary-figure + .summary-figure { border-left: 0; border-top: 1px solid var(--line); }
   .image-message-card { min-height: 150px; border-radius: var(--radius-lg); }
+  .skeleton-photo { min-height: 150px; border-radius: var(--radius-lg); }
 
   .select-field { flex: 1 1 100%; }
   .card-grid, .project-list { grid-template-columns: minmax(0, 1fr); }

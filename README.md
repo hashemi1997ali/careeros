@@ -18,7 +18,7 @@ Browser → client/ (Next.js BFF, Auth0 session)
 careeros/
 ├── client/             Next.js application and BFF routes
 ├── server/             ASP.NET Core API, services, and EF Core migrations
-├── .github/workflows/  API build and Azure Web App deployment workflow
+├── .github/workflows/  CI (API, Docker image, client) and Render deploy
 ├── package.json        Root development, setup, and build scripts
 └── README.md
 ```
@@ -282,7 +282,8 @@ The Next.js client exposes same-origin `/api/*` BFF routes that attach the acces
 - Apply EF Core migrations as a deployment step before starting or scaling the API. The running API does not migrate its own database.
 - Supply server configuration through environment variables such as `ConnectionStrings__DefaultConnection`, `Oidc__Issuer`, `Oidc__Audience`, `OpenAI__ApiKey`, `OpenAI__BaseUrl`, and `OpenAI__Model`. Configure array entries such as `Cors__AllowedOrigins__0` for the deployed client origin if direct browser API calls are needed.
 - Configure the production Auth0 callback, logout, and web origins to match the deployed client URL. Set client environment variables in the hosting platform; omit `APP_BASE_URL` for dynamic Vercel preview URLs as indicated by the template.
-- [`server/Dockerfile`](server/Dockerfile) packages the API for container hosting. The repository also includes a GitHub Actions workflow that builds and deploys the API to Azure Web App on relevant pushes to `main`.
+- The API runs on Render from [`server/Dockerfile`](server/Dockerfile); the client runs on Vercel.
+- The [CI workflow](.github/workflows/ci.yml) builds the API and its Docker image and lints, type-checks and builds the client on every push and pull request. After a green run on `main` it calls the Render deploy hook stored in the `RENDER_DEPLOY_HOOK_URL` repository secret; without the secret it skips the deploy. When you use the hook, turn off Render's own auto-deploy so each commit deploys once and only after CI passes.
 - The API validates tokens but holds no Auth0 OIDC client secret. The Next.js BFF obtains and forwards access tokens.
 - `User.Id` is a UUID; internal aggregate keys are database-generated integers. Ownership is enforced through user relationships, not through unguessable IDs.
 - Keep `.env.local`, user secrets, database credentials, Auth0 secrets, and AI keys out of the repository.

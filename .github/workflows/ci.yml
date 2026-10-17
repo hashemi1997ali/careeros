@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.x"
+
+      - name: Build
+        run: dotnet build server/server.csproj --configuration Release
+
+      # Render builds the API from this Dockerfile; catch a broken image before it reaches Render.
+      - name: Build Docker image
+        run: docker build --file server/Dockerfile --tag careeros-api .
+
+  web:
+    name: Client lint, typecheck and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    # Placeholder values: the build only needs them to exist; nothing connects to them.
+    env:
+      APP_BASE_URL: http://localhost:3000
+      AUTH0_DOMAIN: ci.example.auth0.com
+      AUTH0_CLIENT_ID: ci
+      AUTH0_CLIENT_SECRET: ci
+      AUTH0_SECRET: 0000000000000000000000000000000000000000000000000000000000000000
+      AUTH0_AUDIENCE: https://ci.example
+      SERVER_URL: http://localhost:4000
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+
+  deploy-api:
+    name: Deploy API to Render
+    needs: [api, web]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      # Uses the service's deploy hook (Render > service > Settings > Deploy Hook) stored as a repository secret.
+      # Without the secret the job only reports that it skipped, so forks and fresh clones stay green.
+      - name: Trigger Render deploy
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "::notice::RENDER_DEPLOY_HOOK_URL is not set; skipping the Render deploy."
+            exit 0
+          fi
+          curl --fail --silent --show-error --request POST "$RENDER_DEPLOY_HOOK_URL" > /dev/null
+          echo "Render deploy triggered."

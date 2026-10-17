@@ -14,6 +14,9 @@ import { localDateInputValue } from '@/lib/date'
 import { apiFetch } from '@/lib/api-client'
 import type { Skill, SkillLevel, SkillSuggestion } from '@/components/types'
 import { Badge, LevelBadge } from '@/components/badge'
+import { Pagination, usePagedQuery } from '@/components/pagination'
+import { useDebounced } from '@/lib/use-debounced'
+import { SkillsSkeleton } from '@/components/skeleton'
 
 const levels: SkillLevel[] = ['Beginner', 'Intermediate', 'Advanced']
 const formatExperience = (startDate: string | null) => {
@@ -47,14 +50,11 @@ export default function SkillsPage() {
   const [error, setError] = useState<string | null>(null)
   // The list opens only while the person types; picking, Escape or leaving the field closes it.
   const [suggesting, setSuggesting] = useState(false)
-  const [suggestionTerm, setSuggestionTerm] = useState('')
+  const suggestionTerm = useDebounced(name.trim())
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => setSuggestionTerm(name.trim()), 250)
-    return () => window.clearTimeout(timer)
-  }, [name])
-
-  const q = useQuery({ queryKey: ['skills'], queryFn: ({ signal }) => apiFetch<Skill[]>('/api/skills', { signal }) })
+  // 12 cards fill 1, 2, 3 or 4 columns evenly.
+  const list = usePagedQuery<Skill>('skills', '/api/skills', { search: useDebounced(search.trim()), category: category === 'All' ? undefined : category, sort }, 12)
+  const q = list.query
   const suggestionsQuery = useQuery({
     queryKey: ['skill-suggestions', suggestionTerm],
     queryFn: ({ signal }) => apiFetch<SkillSuggestion[]>(`/api/skills/suggestions?search=${encodeURIComponent(suggestionTerm)}`, { signal }),
@@ -62,7 +62,6 @@ export default function SkillsPage() {
     staleTime: 15_000,
   })
   const suggestions = suggesting && name.trim().length >= 2 ? suggestionsQuery.data ?? [] : []
-  const skills = useMemo(() => q.data ?? [], [q.data])
 
   function openCreate() {
     setViewing(null); setEditing(null); setName(''); setCat(''); setLevel('Beginner'); setStartDate(''); setError(null); setSuggesting(false); setOpen(true)
@@ -113,8 +112,7 @@ export default function SkillsPage() {
     mutationFn: async ({ id, payload }: { id: number | null; payload: Pick<Skill, 'name' | 'category' | 'level' | 'startDate'> }) => id === null
       ? apiFetch<Skill>('/api/skills', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       : apiFetch<void>(`/api/skills/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }),
-    onSuccess: (created, { id, payload }) => {
-      client.setQueryData<Skill[]>(['skills'], (previous = []) => id === null && created ? [created, ...previous] : previous.map(skill => skill.id === id ? { ...skill, ...payload } : skill))
+    onSuccess: () => {
       close()
       void Promise.all([client.invalidateQueries({ queryKey: ['skills'] }), client.invalidateQueries({ queryKey: ['projects'] }), client.invalidateQueries({ queryKey: ['dashboard'] })])
     },
@@ -123,22 +121,20 @@ export default function SkillsPage() {
 
   const del = useMutation({
     mutationFn: (id: number) => apiFetch<void>(`/api/skills/${id}`, { method: 'DELETE' }),
-    onMutate: async (id) => { await client.cancelQueries({ queryKey: ['skills'] }); const previous = client.getQueryData<Skill[]>(['skills']); client.setQueryData<Skill[]>(['skills'], (current = []) => current.filter(skill => skill.id !== id)); return { previous } },
-    onError: (cause: Error, _id, context) => { if (context?.previous) client.setQueryData(['skills'], context.previous) },
     onSettled: () => { void Promise.all([client.invalidateQueries({ queryKey: ['skills'] }), client.invalidateQueries({ queryKey: ['projects'] }), client.invalidateQueries({ queryKey: ['dashboard'] })]) },
   })
 
-  const categories = useMemo(() => ['All', ...Array.from(new Set(skills.map(skill => skill.category))).sort((a, b) => a.localeCompare(b))], [skills])
-  const visible = useMemo(() => { const term = search.trim().toLowerCase(); return skills.filter(skill => (category === 'All' || skill.category === category) && (!term || `${skill.name} ${skill.category}`.toLowerCase().includes(term))).sort((a, b) => sort === 'level' ? levels.indexOf(b.level) - levels.indexOf(a.level) || a.name.localeCompare(b.name) : sort === 'evidence' ? b.projects.length - a.projects.length || a.name.localeCompare(b.name) : a.name.localeCompare(b.name)) }, [category, search, skills, sort])
+  const categories = useMemo(() => ['All', ...Object.keys(list.facets).filter(key => key !== 'All').sort((a, b) => a.localeCompare(b))], [list.facets])
+  const visible = list.items
   const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); if (name.trim().length < 2 || cat.trim().length < 2) { setError('Skill name and category need at least two characters.'); return }; save.mutate({ id: editing?.id ?? null, payload: { name: name.trim(), category: cat.trim(), level, startDate: startDate || null } }) }
 
-  const pageState = usePageState([q], 'Loading your skills')
+  const pageState = usePageState([q], 'Loading your skills', <SkillsSkeleton />)
   if (pageState) return pageState
 
   return <>
     <section className="page-heading"><div><p className="eyebrow">YOUR CAPABILITIES</p><h1>Skills</h1><p>Track your skills and evidence.</p></div><div className="talent-page-actions"><Link className="button button-ghost" href="/skills/graph"><Icon name="brain" size={17}/>Skill Core</Link><button className="button button-primary" type="button" onClick={openCreate}><Icon name="plus" />Add skill</button></div></section>
-    <ResourceToolbar search={search} onSearch={setSearch} searchLabel="Search skills" filters={categories.map(value => ({value,label:value,count:value === 'All' ? skills.length : skills.filter(skill => skill.category === value).length}))} filter={category} onFilter={setCategory} sort={sort} onSort={setSort} sortOptions={[{value:'name',label:'Name A–Z'},{value:'level',label:'Highest proficiency'},{value:'evidence',label:'Most project evidence'}]} count={visible.length} total={skills.length} loading={q.isPending} onReset={search || category !== 'All' ? () => { setSearch(''); setCategory('All') } : undefined}/>
-    {visible.length ? <section className="card-grid">{visible.map(skill => <article className="skill-card" key={skill.id} onClick={event => { if (!(event.target as HTMLElement).closest('button, [role="dialog"]')) openDetails(skill) }}>
+    <ResourceToolbar search={search} onSearch={setSearch} searchLabel="Search skills" filters={categories.map(value => ({ value, label: value, count: list.facets[value] ?? 0 }))} filter={category} onFilter={setCategory} sort={sort} onSort={setSort} sortOptions={[{value:'name',label:'Name A–Z'},{value:'level',label:'Highest proficiency'},{value:'evidence',label:'Most project evidence'}]} count={list.total} total={list.facets.All ?? 0} loading={q.isPending} onReset={search || category !== 'All' ? () => { setSearch(''); setCategory('All') } : undefined}/>
+    {visible.length ? <><section id="skill-list" className="card-grid">{visible.map(skill => <article className="skill-card" key={skill.id} onClick={event => { if (!(event.target as HTMLElement).closest('button, [role="dialog"]')) openDetails(skill) }}>
       <div className="skill-card-heading">
         <div className="skill-card-title"><h2>{skill.name}</h2></div>
       </div>
@@ -152,7 +148,7 @@ export default function SkillsPage() {
         <button type="button" className="icon-action" onClick={() => openEdit(skill)} aria-label={`Edit ${skill.name}`} title={`Edit ${skill.name}`}><Icon name="edit" size={17} /></button>
         <button type="button" className="icon-action" onClick={() => openDetails(skill)} aria-label={`View details for ${skill.name}`} title="View skill details"><Icon name="eye" size={17} /></button>
       </div></div>
-    </article>)}</section> : <section className="panel"><EmptyState icon="brain" title={search || category !== 'All' ? 'No skills match' : 'Start your skill profile'} description={search || category !== 'All' ? 'Try another category or search term.' : 'Add the skills you use today. Matching and gap analysis get sharper with every one.'} action={search || category !== 'All' ? <button className="button button-ghost" type="button" onClick={() => { setSearch(''); setCategory('All') }}>Clear filters</button> : <button className="button button-primary" type="button" onClick={openCreate}><Icon name="plus" size={17}/>Add skill</button>} /></section>}
+    </article>)}</section><Pagination page={list.page} pageCount={list.pageCount} onPage={list.setPage} total={list.total} pageSize={list.pageSize} label="Skills" anchorId="skill-list" /></> : <section className="panel"><EmptyState icon="brain" title={search || category !== 'All' ? 'No skills match' : 'Start your skill profile'} description={search || category !== 'All' ? 'Try another category or search term.' : 'Add the skills you use today. Matching and gap analysis get sharper with every one.'} action={search || category !== 'All' ? <button className="button button-ghost" type="button" onClick={() => { setSearch(''); setCategory('All') }}>Clear filters</button> : <button className="button button-primary" type="button" onClick={openCreate}><Icon name="plus" size={17}/>Add skill</button>} /></section>}
     <Dialog
       open={open}
       onClose={close}

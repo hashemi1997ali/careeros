@@ -73,14 +73,15 @@ interface QueryLike {
 
 /**
  * Returns the full-page loader/error for a set of queries, or `null` once every query has data.
- * Errors win over loading so an offline server is reported immediately.
+ * Errors win over loading so an offline server is reported immediately. Pages pass their `skeleton`
+ * (an empty copy of their own layout); the logo loader is only the fallback.
  */
-export function usePageState(queries: QueryLike[], loadingLabel?: string): ReactNode | null {
+export function usePageState(queries: QueryLike[], loadingLabel?: string, skeleton?: ReactNode): ReactNode | null {
   const failed = queries.find(query => query.isError)
   if (failed) {
     const retry = () => Promise.all(queries.filter(query => query.isError).map(query => query.refetch()))
     return <PageError error={failed.error} onRetry={retry} retrying={queries.some(query => query.isError && query.isFetching)} />
   }
-  if (queries.some(query => query.isPending)) return <PageLoader label={loadingLabel} />
+  if (queries.some(query => query.isPending)) return skeleton ?? <PageLoader label={loadingLabel} />
   return null
 }

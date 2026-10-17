@@ -121,3 +121,12 @@ export interface AiJobAnalysis {
   roadmapSkills: string[]
   extractedApplication: ExtractedApplication | null
 }
+
+/** A page from a list endpoint called with `page`; `facets` counts each filter option over all items. */
+export interface Paged<T> {
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
+  facets: Record<string, number>
+}

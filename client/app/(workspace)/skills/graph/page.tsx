@@ -8,10 +8,11 @@ import { usePageState } from '@/components/page-state'
 import { Icon } from '@/components/icons'
 import type { Skill } from '@/components/types'
 import { apiFetch } from '@/lib/api-client'
+import { SkillCoreSkeleton } from '@/components/skeleton'
 
 export default function SkillGraphPage() {
   const query = useQuery({ queryKey: ['skills'], queryFn: ({ signal }) => apiFetch<Skill[]>('/api/skills', { signal }) })
-  const pageState = usePageState([query], 'Loading Skill Core')
+  const pageState = usePageState([query], 'Loading Skill Core', <SkillCoreSkeleton />)
   if (pageState) return pageState
 
   return <>

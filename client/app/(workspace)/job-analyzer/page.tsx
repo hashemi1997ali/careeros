@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Icon } from '@/components/icons'
-import { LoadingState } from '@/components/loading-state'
 import { usePageState } from '@/components/page-state'
 import { PanelTitle } from '@/components/panel-title'
 import { useSkillsAppUrl } from '@/components/app-shell'
@@ -16,6 +15,7 @@ import { formatShortDate } from '@/lib/date'
 import { formatApplicationStatus as formatStatusLabel } from '@/lib/application-status'
 import type { AiJobAnalysis, ApplicationStatus, ExtractedApplication, JobApplication, JobMatch } from '@/components/types'
 import { Badge, CountBadge, StatusBadge, type BadgeTone } from '@/components/badge'
+import { AnalysisResultSkeleton, AnalyzerSkeleton } from '@/components/skeleton'
 
 const badgeTones: Record<'good' | 'danger' | 'warning', BadgeTone> = { good: 'success', danger: 'danger', warning: 'warning' }
 
@@ -97,7 +97,7 @@ export default function JobAnalyzerPage() {
   const missingRoadmapSkills = aiAnalysis?.missingRequiredSkills.filter(skill => roadmapSkillKeys.has(skill.trim().toLowerCase())) ?? []
   const roadmapUrl = buildSkillForgeRoadmapUrl(skillsAppUrl, missingRoadmapSkills) ?? skillsAppUrl
 
-  const pageState = usePageState([applicationsQuery], 'Loading the analyzer')
+  const pageState = usePageState([applicationsQuery], 'Loading the analyzer', <AnalyzerSkeleton />)
   if (pageState) return pageState
 
   return <>
@@ -114,7 +114,7 @@ export default function JobAnalyzerPage() {
       </article>
       <article className="panel analyzer-result">
         <PanelTitle icon="chart" title="Analysis result" subtitle="Score, gaps and next steps." />
-        {aiPending ? <div className="analyzer-skeleton"><LoadingState label="Analyzing your job match"/></div> : aiAnalysis ? <>
+        {aiPending ? <AnalysisResultSkeleton /> : aiAnalysis ? <>
           <div className="analysis-score"><ScoreRing score={aiAnalysis.matchScore} /></div>
           <div className="ai-analysis-summary"><strong>{aiAnalysis.summary}</strong><p>{aiAnalysis.explanation}</p></div>
           <MatchResult result={{ jobApplicationId: selectedId ?? 0, matchScore: aiAnalysis.matchScore, hasRequirements: true, matchedSkills: aiAnalysis.matchedSkills, missingRequiredSkills: aiAnalysis.missingRequiredSkills, missingOptionalSkills: aiAnalysis.missingOptionalSkills }} roadmapSkills={aiAnalysis.roadmapSkills} skillsAppUrl={skillsAppUrl} />

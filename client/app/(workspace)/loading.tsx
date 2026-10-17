@@ -1,5 +1,5 @@
-import { PageLoader } from '@/components/page-state'
+import { WorkspaceSkeleton } from '@/components/skeleton'
 
 export default function Loading() {
-  return <PageLoader />
+  return <WorkspaceSkeleton />
 }

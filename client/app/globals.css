@@ -644,6 +644,29 @@ select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23808898' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 12px center;
 }
+/* Dropdown lists. Browsers with customizable select (Chrome/Edge 135+) draw the open list in the theme;
+   elsewhere the native list at least takes the theme colours (and follows color-scheme). */
+select option { background-color: var(--surface); color: var(--ink); }
+@supports (appearance: base-select) {
+  select, ::picker(select) { appearance: base-select; }
+  select::picker-icon { display: none; } /* the fields draw their own chevron */
+  ::picker(select) {
+    margin-block: 6px; padding: 6px; max-block-size: min(320px, 60vh); max-inline-size: calc(100vw - 24px); overflow-y: auto;
+    border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-lg);
+    transition: opacity var(--base) var(--ease-out), translate var(--base) var(--ease-expo);
+  }
+  @starting-style { ::picker(select) { opacity: 0; translate: 0 -4px; } } /* entry fade/slide each time the list opens */
+  select option {
+    display: flex; align-items: center; gap: 10px; min-block-size: 40px; padding: 8px 12px; border-radius: 8px; line-height: 1.35; white-space: normal; /* long names wrap instead of widening the list past the screen */
+    background: transparent; color: var(--ink); font-size: 0.9rem; font-weight: 500; cursor: pointer;
+    transition: background var(--fast) var(--ease-out), color var(--fast) var(--ease-out);
+  }
+  select option:hover, select option:focus-visible { background: var(--surface-2); outline: none; }
+  select option:checked { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+  select option::checkmark { order: 1; margin-inline-start: auto; } /* tick on the right of the chosen option */
+  select option:disabled { color: var(--subtle); cursor: default; }
+}
+@media (prefers-reduced-motion: reduce) { ::picker(select) { transition: none; } }
 input[type="date"], input[type="datetime-local"] { font-variant-numeric: tabular-nums; }
 ::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
 :root[data-theme="dark"] ::-webkit-calendar-picker-indicator { filter: invert(1); }
@@ -741,16 +764,17 @@ input[type="checkbox"]:not(.switch) { width: 18px; height: 18px; accent-color: v
 .summary-meter i { display: block; height: 100%; background: linear-gradient(90deg, var(--primary), var(--ember)); border-radius: inherit; transform-origin: left; animation: grow-x 1s var(--ease-expo) both 200ms; }
 @keyframes grow-x { from { transform: scaleX(0); } }
 
-.image-message-card { grid-area: rem; position: relative; overflow: hidden; min-height: 176px; border-radius: var(--radius-xl); display: flex; align-items: flex-end; padding: var(--space-lg); color: oklch(0.99 0.005 var(--hue)); isolation: isolate; }
+.image-message-card { grid-area: rem; position: relative; overflow: hidden; background: oklch(0.32 0.05 var(--hue)); /* photo tone while decoding */ min-height: 176px; border-radius: var(--radius-xl); display: flex; align-items: flex-end; padding: var(--space-lg); color: oklch(0.99 0.005 var(--hue)); isolation: isolate; }
 .image-message-card img { object-fit: cover; z-index: -2; transition: transform 1.2s var(--ease-out); }
 .image-message-card:hover img { transform: scale(1.04); }
 .image-message-card::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, transparent 20%, oklch(0.18 0.05 var(--hue) / 0.78)); }
 .image-message-card div { display: grid; gap: 6px; max-width: 32ch; }
 .image-message-card small { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.85; }
 .image-message-card strong { font-family: var(--font-heading); font-size: 1.22rem; font-weight: 600; line-height: 1.25; letter-spacing: -0.01em; }
-.theme-image-dark { display: none; }
-:root[data-theme="dark"] .theme-image-light { display: none; }
-:root[data-theme="dark"] .theme-image-dark { display: block; }
+.image-message-card .theme-image { transition: opacity var(--slow) var(--ease-out), transform 1.2s var(--ease-out); }
+/* Both images stay rendered (so both are fetched); the theme only changes which one is visible. */
+.theme-image-dark, :root[data-theme="dark"] .theme-image-light { opacity: 0; }
+:root[data-theme="dark"] .theme-image-dark { opacity: 1; }
 
 .pipeline-panel { grid-area: pipe; }
 .pipeline-bar { display: flex; gap: 3px; height: 14px; margin-bottom: var(--space-lg); border-radius: 999px; overflow: hidden; background: var(--surface-3); }
@@ -864,6 +888,24 @@ td[data-label="Company"] .cell-stack > * { min-width: 0; overflow: hidden; text-
 .compact-metrics .metric-copy p { color: var(--muted); font-size: 0.84rem; font-weight: 600; }
 .compact-metrics .metric-value { font-size: 1.9rem; }
 
+/* Pagination under long lists: range on the left, pages on the right; stacks on phones. */
+.pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-sm) var(--space-md); margin-top: var(--space-lg); }
+.pagination-range { color: var(--subtle); font-size: 0.84rem; font-variant-numeric: tabular-nums; }
+.pagination-controls { display: flex; align-items: center; gap: 4px; }
+.pagination-page, .pagination-step {
+  display: inline-grid; place-items: center; min-width: 38px; height: 38px; padding: 0 10px; border-radius: 999px;
+  border: 1px solid transparent; color: var(--muted); font-size: 0.86rem; font-weight: 600; font-variant-numeric: tabular-nums;
+  transition: background var(--fast) var(--ease-out), color var(--fast) var(--ease-out), border-color var(--fast) var(--ease-out), transform var(--fast) var(--ease-out);
+}
+.pagination-step { border-color: var(--line); background: var(--surface); }
+.pagination-step:first-child svg { rotate: 180deg; }
+.pagination-page:hover, .pagination-step:hover:not(:disabled) { color: var(--ink); background: var(--surface-2); }
+.pagination-page:active, .pagination-step:active:not(:disabled) { transform: scale(0.94); }
+.pagination-page[aria-current="page"] { background: var(--ink); color: var(--bg); }
+.pagination-step:disabled { opacity: 0.4; }
+.pagination-gap { min-width: 22px; color: var(--subtle); text-align: center; }
+@media (max-width: 719px) { .pagination { justify-content: center; } .pagination-range { width: 100%; text-align: center; } }
+
 /* ==========================================================================
    Skill cards
    ========================================================================== */
@@ -941,7 +983,6 @@ td[data-label="Company"] .cell-stack > * { min-width: 0; overflow: hidden; text-
 .requirement-preview { display: grid; gap: 8px; margin-top: 8px; padding-top: 12px; border-top: 1px dashed var(--line-strong); font-size: 0.86rem; }
 .analyzer-result { min-height: 520px; }
 .analyzer-result:has(> .analysis-empty) { align-self: stretch; display: flex; flex-direction: column; }
-.analyzer-skeleton { min-height: 260px; }
 .analysis-empty { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--space-sm); padding: var(--space-md); }
 .analysis-empty h2 { font-family: var(--font-heading); font-size: 1.3rem; font-weight: 600; margin-top: var(--space-2xl); }
 .analysis-empty p { color: var(--muted); max-width: 44ch; font-size: 0.92rem; }
@@ -1089,12 +1130,38 @@ td[data-label="Company"] .cell-stack > * { min-width: 0; overflow: hidden; text-
 .empty-state p { color: var(--muted); font-size: 0.92rem; max-width: 42ch; }
 .empty-state-action { margin-top: var(--space-sm); }
 
-.content-skeleton { display: grid; gap: 12px; }
-.content-skeleton i { display: block; height: 18px; border-radius: 8px; background: var(--surface-3); position: relative; overflow: hidden; }
-.content-skeleton i:nth-child(3n) { width: 70%; }
-.content-skeleton:not(.is-cards) i:nth-child(2) { height: 52px; }
-.content-skeleton.is-cards i { height: 200px; border-radius: var(--radius-xl); width: auto; }
-.content-skeleton i::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--surface) 70%, transparent), transparent); animation: shimmer 1.4s var(--ease-inout) infinite; animation-delay: calc(var(--i, 0) * 90ms); }
+/* Skeleton screens (components/skeleton.tsx). Every bone shares one fixed background, so a single
+   highlight sweeps across the whole page instead of each box shimmering on its own. */
+.skeleton {
+  display: block; flex: none; max-width: 100%;
+  background-color: var(--surface-3);
+  background-image: linear-gradient(100deg, transparent 35%, color-mix(in srgb, var(--surface) 75%, transparent) 50%, transparent 65%);
+  background-size: 200vw 100%; background-attachment: fixed; background-repeat: no-repeat;
+  animation: skeleton-sweep 1.6s var(--ease-inout) infinite;
+}
+:root[data-theme="dark"] .skeleton { background-color: var(--surface-2); background-image: linear-gradient(100deg, transparent 35%, rgb(255 255 255 / 0.06) 50%, transparent 65%); }
+@keyframes skeleton-sweep { from { background-position: 100vw 0; } to { background-position: -100vw 0; } }
+.page-skeleton { animation: careeros-fade var(--dur-slow) var(--ease-out) 0.12s both; } /* fast loads never flash it */
+.skeleton-stack { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.page-heading .skeleton-stack { flex: 1 1 320px; }
+.skeleton-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.skeleton-nowrap { flex-wrap: nowrap; }
+.skeleton-end { justify-content: flex-end; }
+.skeleton-center { display: grid; place-items: center; flex: 1; padding: var(--space-md) 0; }
+.skeleton-grow { flex: 1 1 280px; }
+.skeleton-select { flex: 0 1 240px; }
+.skeleton-card { cursor: default; pointer-events: none; }
+.skeleton-media { min-height: 176px; border-radius: var(--radius-xl); overflow: hidden; }
+.skeleton-explorer { display: grid; grid-template-columns: minmax(0, 1fr) 330px; min-height: min(640px, 80vh); padding: 0; overflow: hidden; } /* Skill Core: sphere + category list */
+.skeleton-explorer-stage { display: flex; flex-direction: column; padding: var(--space-lg); }
+.skeleton-explorer-side { display: grid; align-content: start; gap: var(--space-md); padding: var(--space-lg); border-left: 1px solid var(--line); }
+@media (max-width: 1250px) { .skeleton-explorer { grid-template-columns: minmax(0, 1fr); } .skeleton-explorer-side { border-left: 0; border-top: 1px solid var(--line); } }
+.skeleton-tile { height: 200px; }
+.skeleton-table { display: grid; }
+.skeleton-table-row { display: grid; grid-template-columns: minmax(0, 1fr) 120px 170px 130px; align-items: center; gap: var(--space-md); padding: 16px 12px; border-bottom: 1px solid var(--line); }
+.skeleton-table-row:last-child { border-bottom: 0; }
+.skeleton-analysis { display: grid; justify-items: center; gap: var(--space-lg); padding-top: var(--space-md); }
+.skeleton-analysis > .skeleton-stack { width: 100%; }
 @keyframes shimmer { to { transform: translateX(100%); } }
 .spinner { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--line-strong); border-top-color: var(--primary); animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -1171,6 +1238,9 @@ td[data-label="Company"] .cell-stack > * { min-width: 0; overflow: hidden; text-
 
 @media (max-width: 1099px) {
   /* Tables become stacked cards */
+  .skeleton-table { gap: 10px; }
+  .skeleton-table-row { grid-template-columns: 1fr 1fr; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); }
+  .skeleton-table-row > :first-child, .skeleton-table-row > :last-child { grid-column: 1 / -1; }
   .data-table table, .data-table tbody, .data-table tr, .data-table td { display: block; width: 100%; }
   .data-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   .data-table tbody { display: grid; gap: 10px; }
@@ -1241,6 +1311,7 @@ td[data-label="Company"] .cell-stack > * { min-width: 0; overflow: hidden; text-
   .mobile-nav a span { font-size: 0.62rem; }
 }
 
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; background-image: none; } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; transition-duration: 1ms !important; scroll-behavior: auto !important; }
 }

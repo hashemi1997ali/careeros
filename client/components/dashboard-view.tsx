@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import mountainDay from '@/public/images/careeros/mountain-day.png'
+import mountainNight from '@/public/images/careeros/mountain-night.png'
 import { useQuery } from '@tanstack/react-query'
 import { EmptyState } from '@/components/empty-state'
 import { Icon } from '@/components/icons'
@@ -14,6 +16,7 @@ import { formatApplicationStatus } from '@/lib/application-status'
 import { buildSkillForgeRoadmapUrl } from '@/lib/skillforge'
 import type { ApplicationStatus, DashboardData, Skill } from '@/components/types'
 import { StatusBadge } from '@/components/badge'
+import { DashboardSkeleton } from '@/components/skeleton'
 
 // Labels come from formatApplicationStatus so badges and the pipeline always read the same.
 const pipeline: Array<{ key: ApplicationStatus; tone: string }> = [
@@ -47,7 +50,7 @@ export function DashboardView() {
   const matchScore = Math.round(dashboard?.averageMatchScore ?? 0)
   const roadmapUrl = buildSkillForgeRoadmapUrl(skillsAppUrl, gaps.slice(0, 5).map(skill => skill.name))
 
-  const pageState = usePageState([dashboardQuery, skillsQuery], 'Loading your dashboard')
+  const pageState = usePageState([dashboardQuery, skillsQuery], 'Loading your dashboard', <DashboardSkeleton />)
   if (pageState) return pageState
 
   return (
@@ -82,8 +85,9 @@ export function DashboardView() {
           </article>
 
           <article className="image-message-card dashboard-reminder">
-            <Image className="theme-image theme-image-light" src="/images/careeros/mountain-day.png" fill sizes="(min-width: 1200px) 30vw, 100vw" alt="" loading="eager" unoptimized />
-            <Image className="theme-image theme-image-dark" src="/images/careeros/mountain-night.png" fill sizes="(min-width: 1200px) 30vw, 100vw" alt="" unoptimized />
+            {/* Both load up front (optimised, with a blurred placeholder) so a theme switch only crossfades. */}
+            <Image className="theme-image theme-image-light" src={mountainDay} fill sizes="(min-width: 1280px) 26vw, (min-width: 720px) 60vw, 100vw" alt="" placeholder="blur" loading="eager" />
+            <Image className="theme-image theme-image-dark" src={mountainNight} fill sizes="(min-width: 1280px) 26vw, (min-width: 720px) 60vw, 100vw" alt="" placeholder="blur" loading="eager" />
             <div>
               <small>Reminder</small>
               <strong>Consistent progress creates extraordinary results.</strong>

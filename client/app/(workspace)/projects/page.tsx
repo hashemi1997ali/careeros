@@ -13,6 +13,9 @@ import { localDateInputValue } from '@/lib/date'
 import { apiFetch } from '@/lib/api-client'
 import type { Project, Skill } from '@/components/types'
 import { Badge } from '@/components/badge'
+import { Pagination, usePagedQuery } from '@/components/pagination'
+import { useDebounced } from '@/lib/use-debounced'
+import { ProjectsSkeleton } from '@/components/skeleton'
 
 const formatProjectPeriod = (startDate: string | null, endDate: string | null) => {
   const format = (value: string) => {
@@ -49,9 +52,11 @@ export default function ProjectsPage() {
   const [error, setError] = useState<string | null>(null)
   const today = localDateInputValue()
 
-  const projectsQ = useQuery({ queryKey: ['projects'], queryFn: ({ signal }) => apiFetch<Project[]>('/api/projects', { signal }) })
+  // 6 large cards (2 or 3 columns) keeps the number of live-preview iframes per page small.
+  const searchTerm = useDebounced(search.trim())
+  const list = usePagedQuery<Project>('projects', '/api/projects', { search: searchTerm, links: filter === 'All' ? undefined : filter, sort }, 6)
+  const projectsQ = list.query
   const skillsQ = useQuery({ queryKey: ['skills'], queryFn: ({ signal }) => apiFetch<Skill[]>('/api/skills', { signal }) })
-  const projects = useMemo(() => projectsQ.data ?? [], [projectsQ.data])
   const skills = useMemo(() => skillsQ.data ?? [], [skillsQ.data])
 
   function openCreate() {
@@ -73,13 +78,18 @@ export default function ProjectsPage() {
     return () => window.clearTimeout(timer)
   }, [params])
 
-  // ?view=<id> opens that project's details (linked from the skill details dialog)
+  // ?view=<id> opens that project's details (linked from the skill details dialog); it may be on any page, so load it by id.
+  const viewId = params.get('view')
+  const linkedProject = useQuery({
+    queryKey: ['projects', 'detail', viewId],
+    queryFn: ({ signal }) => apiFetch<Project>(`/api/projects/${encodeURIComponent(viewId ?? '')}`, { signal }),
+    enabled: Boolean(viewId),
+  }).data
   useEffect(() => {
-    const project = projects.find(item => String(item.id) === params.get('view'))
-    if (!project) return
-    const timer = window.setTimeout(() => openDetails(project), 0)
+    if (!linkedProject) return
+    const timer = window.setTimeout(() => openDetails(linkedProject), 0)
     return () => window.clearTimeout(timer)
-  }, [params, projects])
+  }, [linkedProject])
 
   useEffect(() => {
     if (open) return
@@ -137,12 +147,7 @@ export default function ProjectsPage() {
     }) => id === null
       ? apiFetch<Project>('/api/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       : apiFetch<void>(`/api/projects/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }),
-    onSuccess: (created, { id, payload }) => {
-      client.setQueryData<Project[]>(['projects'], (previous = []) => id === null && created
-        ? [created, ...previous]
-        : previous.map(project => project.id === id
-          ? { ...project, ...payload, skills: payload.skillIds.map(skillId => skills.find(skill => skill.id === skillId)).filter((skill): skill is Skill => Boolean(skill)) }
-          : project))
+    onSuccess: () => {
       close()
       void Promise.all([client.invalidateQueries({ queryKey: ['projects'] }), client.invalidateQueries({ queryKey: ['dashboard'] })])
     },
@@ -151,26 +156,10 @@ export default function ProjectsPage() {
 
   const del = useMutation({
     mutationFn: (id: number) => apiFetch<void>(`/api/projects/${id}`, { method: 'DELETE' }),
-    onMutate: async (id) => {
-      await client.cancelQueries({ queryKey: ['projects'] })
-      const previous = client.getQueryData<Project[]>(['projects'])
-      client.setQueryData<Project[]>(['projects'], (current = []) => current.filter(project => project.id !== id))
-      return { previous }
-    },
-    onError: (cause: Error, _id, context) => {
-      if (context?.previous) client.setQueryData(['projects'], context.previous)
-    },
     onSettled: () => { void Promise.all([client.invalidateQueries({ queryKey: ['projects'] }), client.invalidateQueries({ queryKey: ['dashboard'] })]) },
   })
 
-  const visible = useMemo(() => {
-    const term = search.trim().toLowerCase()
-    return projects.filter(project => (
-      filter === 'All' || (filter === 'live' && Boolean(project.liveUrl)) ||
-      (filter === 'repository' && Boolean(project.repositoryUrl)) ||
-      (filter === 'unlinked' && !project.liveUrl && !project.repositoryUrl)
-    ) && (!term || `${project.title} ${project.description}`.toLowerCase().includes(term))).sort((a, b) => sort === 'skills' ? b.skills.length - a.skills.length || a.title.localeCompare(b.title) : sort === 'started' ? (b.startDate ?? '').localeCompare(a.startDate ?? '') || a.title.localeCompare(b.title) : a.title.localeCompare(b.title))
-  }, [projects, search, sort, filter])
+  const visible = list.items
 
   const toggle = (id: number) => setSkillIds(current => current.includes(id) ? current.filter(item => item !== id) : [...current, id])
 
@@ -191,19 +180,19 @@ export default function ProjectsPage() {
     })
   }
 
-  const pageState = usePageState([projectsQ, skillsQ], 'Loading your projects')
+  const pageState = usePageState([projectsQ, skillsQ], 'Loading your projects', <ProjectsSkeleton />)
   if (pageState) return pageState
 
   return <>
     <section className="page-heading"><div><p className="eyebrow">PROOF OF WORK</p><h1>Projects</h1><p>Show what you built and the skills behind it.</p></div><button className="button button-primary" type="button" onClick={openCreate}><Icon name="plus" />Add project</button></section>
     <ResourceToolbar search={search} onSearch={setSearch} searchLabel="Search projects" filterLabel="Links" filter={filter} onFilter={setFilter} filters={[
-      { value: 'All', label: 'All projects', count: projects.length },
-      { value: 'live', label: 'With live demo', count: projects.filter(project => project.liveUrl).length },
-      { value: 'repository', label: 'With repository', count: projects.filter(project => project.repositoryUrl).length },
-      { value: 'unlinked', label: 'Without links', count: projects.filter(project => !project.liveUrl && !project.repositoryUrl).length },
-    ]} sort={sort} onSort={setSort} sortOptions={[{value:'name',label:'Name A–Z'},{value:'started',label:'Recently started'},{value:'skills',label:'Most linked skills'}]} count={visible.length} total={projects.length} onReset={search || filter !== 'All' ? () => { setSearch(''); setFilter('All') } : undefined}/>
-    {visible.length ? (
-      <section className="project-list">
+      { value: 'All', label: 'All projects', count: list.facets.All ?? 0 },
+      { value: 'live', label: 'With live demo', count: list.facets.live ?? 0 },
+      { value: 'repository', label: 'With repository', count: list.facets.repository ?? 0 },
+      { value: 'unlinked', label: 'Without links', count: list.facets.unlinked ?? 0 },
+    ]} sort={sort} onSort={setSort} sortOptions={[{value:'name',label:'Name A–Z'},{value:'started',label:'Recently started'},{value:'skills',label:'Most linked skills'}]} count={list.total} total={list.facets.All ?? 0} onReset={search || filter !== 'All' ? () => { setSearch(''); setFilter('All') } : undefined}/>
+    {visible.length ? (<>
+      <section id="project-list" className="project-list">
         {visible.map((project, index) => (
           <article className="project-card" key={project.id}>
             <div className={`project-art project-preview art-${index % 3}`}>
@@ -230,7 +219,8 @@ export default function ProjectsPage() {
           </article>
         ))}
       </section>
-    ) : <section className="panel"><EmptyState icon="folder" title={search || filter !== 'All' ? 'No projects match' : 'Show what you built'} description={search || filter !== 'All' ? 'Try a different filter or search term.' : 'Add a project and link the skills it proves. Recruiters trust evidence more than lists.'} action={search || filter !== 'All' ? <button className="button button-ghost" type="button" onClick={() => { setSearch(''); setFilter('All') }}>Clear filters</button> : <button className="button button-primary" type="button" onClick={openCreate}><Icon name="plus" size={17}/>Add project</button>} /></section>}
+      <Pagination page={list.page} pageCount={list.pageCount} onPage={list.setPage} total={list.total} pageSize={list.pageSize} label="Projects" anchorId="project-list" />
+    </>) : <section className="panel"><EmptyState icon="folder" title={search || filter !== 'All' ? 'No projects match' : 'Show what you built'} description={search || filter !== 'All' ? 'Try a different filter or search term.' : 'Add a project and link the skills it proves. Recruiters trust evidence more than lists.'} action={search || filter !== 'All' ? <button className="button button-ghost" type="button" onClick={() => { setSearch(''); setFilter('All') }}>Clear filters</button> : <button className="button button-primary" type="button" onClick={openCreate}><Icon name="plus" size={17}/>Add project</button>} /></section>}
     <Dialog
       open={open}
       onClose={close}

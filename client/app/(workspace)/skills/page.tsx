@@ -13,6 +13,7 @@ import { ConfirmButton } from '@/components/confirm-button'
 import { localDateInputValue } from '@/lib/date'
 import { apiFetch } from '@/lib/api-client'
 import type { Skill, SkillLevel, SkillSuggestion } from '@/components/types'
+import { Badge, LevelBadge } from '@/components/badge'
 
 const levels: SkillLevel[] = ['Beginner', 'Intermediate', 'Advanced']
 const formatExperience = (startDate: string | null) => {
@@ -141,7 +142,7 @@ export default function SkillsPage() {
       <div className="skill-card-heading">
         <div className="skill-card-title"><h2>{skill.name}</h2></div>
       </div>
-      <div className="skill-card-category"><span className="sr-only">Category</span><span className="skill-card-value">{skill.category}</span><span className={`level-pill ${skill.level}`}>{skill.level}</span></div>
+      <div className="skill-card-category"><span className="sr-only">Category</span><span className="skill-card-value">{skill.category}</span><LevelBadge level={skill.level} /></div>
       <div className="skill-card-details">
         <div className="skill-card-field"><span className="skill-card-label">Experience</span><span className="skill-card-value">{formatExperience(skill.startDate)}</span></div>
         <div className="skill-card-field skill-card-project-count"><span className="skill-card-label">Projects</span><span className="skill-card-value">{skill.projects.length}</span></div>
@@ -189,7 +190,7 @@ export default function SkillsPage() {
           <div><span>Projects</span><strong>{viewing.projects.length}</strong></div>
         </div>
         <section className="skill-detail-projects"><h3>Project evidence</h3>
-          {viewing.projects.length ? <ul className="application-requirements">{viewing.projects.map(project => <li key={project.id}><Link className="requirement-link" href={`/projects?view=${project.id}`}>{project.title}<Icon name="arrow" size={13} /></Link></li>)}</ul> : <p>No projects linked to this skill.</p>}
+          {viewing.projects.length ? <ul className="badge-list">{viewing.projects.map(project => <li key={project.id}><Badge><Link href={`/projects?view=${project.id}`}>{project.title}<Icon name="arrow" size={13} /></Link></Badge></li>)}</ul> : <p>No projects linked to this skill.</p>}
         </section>
       </div>
     </Dialog>}

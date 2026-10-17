@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Icon } from '@/components/icons'
+import { CountBadge } from '@/components/badge'
 
 type Option = { value: string; label: string; count?: number }
 
@@ -63,16 +64,33 @@ function FilterStrip({ label, filters, filter, onFilter, loading }: { label: str
 
   const page = (direction: 1 | -1) => scroller.current?.scrollBy({ left: direction * scroller.current.clientWidth * 0.7, behavior: 'smooth' })
 
+  // Mouse drag scrolls the row like a touch swipe; a drag never counts as a chip click.
+  const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null)
+  const [dragging, setDragging] = useState(false)
+  const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== 'mouse' || event.button !== 0 || !scroller.current) return
+    drag.current = { x: event.clientX, left: scroller.current.scrollLeft, moved: false }
+  }
+  const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const state = drag.current, element = scroller.current
+    if (!state || !element) return
+    const distance = event.clientX - state.x
+    if (!state.moved && Math.abs(distance) < 5) return
+    if (!state.moved) { state.moved = true; setDragging(true); element.setPointerCapture(event.pointerId) }
+    element.scrollLeft = state.left - distance
+  }
+  const endDrag = () => { drag.current = null; setDragging(false) }
+
   return <div className="filter-strip" data-fade-start={edges.start} data-fade-end={edges.end}>
     {edges.start && <button type="button" className="filter-scroll" data-side="start" onClick={() => page(-1)} aria-label="Show previous filters" tabIndex={-1}><Icon name="arrow" size={15}/></button>}
-    <div ref={scroller} className="filter-chips" role="group" aria-label={label}>
+    <div ref={scroller} className="filter-chips" role="group" aria-label={label} data-dragging={dragging} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={endDrag} onPointerCancel={endDrag} onLostPointerCapture={endDrag}>
       {filters.map(option => <button
         key={option.value}
         type="button"
-        className="filter-chip"
+        className="chip"
         aria-pressed={filter === option.value}
         onClick={() => onFilter(option.value)}
-      ><span>{option.label}</span>{!loading && option.count !== undefined && <span className="filter-chip-count">{option.count}</span>}</button>)}
+      ><span>{option.label}</span>{!loading && option.count !== undefined && <CountBadge>{option.count}</CountBadge>}</button>)}
     </div>
     {edges.end && <button type="button" className="filter-scroll" data-side="end" onClick={() => page(1)} aria-label="Show more filters" tabIndex={-1}><Icon name="arrow" size={15}/></button>}
   </div>

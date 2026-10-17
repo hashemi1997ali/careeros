@@ -1,18 +1,12 @@
 'use client'
 
 import { useEffect, useMemo, useRef } from 'react'
-import { Icon } from '@/components/icons'
+import { SkillCoreMark } from '@/components/skill-core-mark'
 import type { Skill } from '@/components/types'
 import { byProficiency, categoryColors, categoryKey } from '@/lib/skill-graph-model'
 
 const center = 180
 const orbitRadius = 120
-
-function BrainMark({ x = center, y = 173, size = 34 }: { x?: number; y?: number; size?: number }) {
-  return <foreignObject x={x - size / 2} y={y - size / 2} width={size} height={size}>
-    <div className="talent-core-icon-wrap"><Icon className="talent-brain-mark" name="brain" size={size} /></div>
-  </foreignObject>
-}
 
 export function SkillGraph({ skills, showLevels = true, showCenterLabel = true, showCaption = true, categoryMode = false }: { skills: Skill[]; showLevels?: boolean; showCenterLabel?: boolean; showCaption?: boolean; categoryMode?: boolean }) {
   const visible = useMemo(() => {
@@ -71,8 +65,8 @@ export function SkillGraph({ skills, showLevels = true, showCenterLabel = true, 
       <circle cx={center} cy={center} r={orbitRadius} className="talent-orbit"/>
       <circle cx={center} cy={center} r="92" className="talent-orbit talent-orbit-inner"/>
       {positions.map(({ key, x, y, color }) => <line data-talent-line key={key} x1={center} y1={center} x2={x} y2={y} className="talent-spoke" style={{ stroke: color }}/>)}
-      <circle cx={center} cy={center} r="48" className="talent-core-halo"/><circle cx={center} cy={center} r="38" className="talent-core"/>
-      <BrainMark y={showCenterLabel ? 173 : center} size={showCenterLabel ? 34 : 42} />
+      <circle cx={center} cy={center} r="48" className="talent-core-halo"/>
+      <SkillCoreMark cx={center} cy={center} r={38} glyphOffset={showCenterLabel ? 7 : 0} />
       {showCenterLabel && <text x={center} y="200" textAnchor="middle" className="talent-core-label">Skills</text>}
       {positions.map(({ key, label, detail, color, x, y }, index) => <g data-talent-node key={key} transform={`translate(${x} ${y})`} className="talent-node" style={{ '--talent-level': color } as React.CSSProperties}>
         <title>{categoryMode ? `${index + 1}. ${label}` : `${index + 1}. ${label} · ${detail}`}</title>

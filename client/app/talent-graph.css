@@ -7,9 +7,9 @@
 .talent-orbit{fill:none;stroke:var(--line);stroke-width:1;stroke-dasharray:3 7}.talent-orbit-inner{opacity:.6;stroke-dasharray:none}
 .talent-Advanced{--talent-level:var(--teal)}.talent-Intermediate{--talent-level:var(--blue)}.talent-Beginner{--talent-level:var(--amber)}
 .talent-spoke{stroke:var(--talent-level);stroke-width:1;opacity:.4}
-.talent-core-halo{fill:color-mix(in srgb,var(--teal) 10%,transparent);stroke:color-mix(in srgb,var(--teal) 22%,transparent);stroke-width:1}
-.talent-core{fill:var(--teal);stroke:color-mix(in srgb,var(--teal) 60%,white);stroke-width:1.5;filter:drop-shadow(0 5px 12px color-mix(in srgb,var(--teal) 22%,transparent))}
-.talent-core-label{fill:#063e35;font-size:12px;font-weight:600}.talent-core-icon-wrap{width:100%;height:100%;display:grid;place-items:center;color:#f6fffc}.talent-brain-mark{opacity:.76;filter:drop-shadow(0 2px 3px rgba(6,62,53,.16))}
+.talent-core-halo{fill:rgb(20 184 166 / .1);stroke:rgb(20 184 166 / .22);stroke-width:1}
+.skill-core-mark{filter:drop-shadow(0 5px 12px rgb(20 184 166 / .25))}
+.talent-core-label{fill:#063e35;font-size:12px;font-weight:600}
 .talent-node rect{fill:var(--surface);stroke:color-mix(in srgb,var(--talent-level) 28%,var(--line));stroke-width:1;filter:drop-shadow(0 3px 5px color-mix(in srgb,var(--ink) 5%,transparent));transition:stroke .2s ease}
 .talent-node:hover rect{stroke:var(--talent-level)}.talent-node circle{fill:var(--talent-level)}
 .talent-skill-name{fill:var(--ink);font-size:11px;font-weight:600}.talent-skill-level{fill:var(--muted);font-size:10px}
@@ -39,7 +39,7 @@
 .talent-skill-list>button{display:flex;align-items:center;gap:8px;width:100%;min-height:64px;flex-shrink:0;padding:10px 8px;border:1px solid transparent;border-radius:11px;color:var(--ink);background:var(--surface-soft);text-align:left;transition:background .18s ease,border-color .18s ease}
 .talent-skill-list>button:hover,.talent-skill-list>button[aria-pressed="true"]{border-color:color-mix(in srgb,var(--category-color) 55%,var(--line));background:color-mix(in srgb,var(--category-color) 8%,var(--surface))}
 .talent-skill-list>button>i{display:block;width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:var(--category-color)}
-.talent-skill-list>button>span:nth-child(2){min-width:0;flex:1}.talent-skill-list strong,.talent-skill-list small{display:block;overflow-wrap:anywhere}.talent-skill-list strong{font-size:12px;font-weight:600}.talent-skill-list small{margin-top:3px;color:var(--muted);font-size:11px}.talent-skill-list .level-pill{padding:4px 6px;min-height:24px;font-size:10px}
+.talent-skill-list>button>span:nth-child(2){min-width:0;flex:1}.talent-skill-list strong,.talent-skill-list small{display:block;overflow-wrap:anywhere}.talent-skill-list strong{font-size:12px;font-weight:600}.talent-skill-list small{margin-top:3px;color:var(--muted);font-size:11px}
 .talent-selected{padding:16px;margin-top:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface-soft);overflow-wrap:anywhere}
 .talent-selected>div{display:flex;align-items:center;justify-content:space-between;gap:8px}.talent-selected .eyebrow{margin:0;font-size:10px}.talent-selected .talent-motion-toggle{width:32px;height:32px;flex-basis:32px}.talent-selected>svg{color:var(--teal)}
 .talent-selected h3{margin:8px 0;font-size:15px;font-weight:600}.talent-selected p{margin:6px 0;color:var(--muted);font-size:12px;line-height:1.65}.talent-selected>span{display:inline-block;margin-top:8px;color:var(--blue);font-size:12px;font-weight:500}
@@ -48,7 +48,7 @@
 .talent-loading{min-height:560px}
 @media(min-width:1024px) and (max-width:1250px){.talent-explorer-grid{grid-template-columns:minmax(0,1fr)}.talent-inspector{border-left:0;border-top:1px solid var(--line)}.talent-skill-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.talent-canvas{height:520px}}
 @media(max-width:900px){.talent-explorer-grid{grid-template-columns:minmax(0,1fr)}.talent-inspector{border-left:0;border-top:1px solid var(--line)}.talent-skill-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.talent-canvas{height:520px}}
-@media(max-width:520px){.talent-explorer{border-radius:16px}.talent-explorer-bar{padding:16px}.talent-scene-meta{gap:10px}.talent-scene-meta>span:last-child{width:100%;padding-left:18px}.talent-canvas{height:420px}.talent-stage-caption{top:18px;left:16px;right:16px}.talent-stage-footer,.talent-edge-key{padding-left:16px;padding-right:16px}.talent-stage-footer{gap:8px}.talent-stage-footer p>span{display:none}.talent-inspector{padding:16px}.talent-inspector .inline-search input{font-size:16px}.talent-skill-list{display:flex;max-height:300px}.talent-skill-list .level-pill{font-size:11px}.talent-page-actions{width:100%}.talent-page-actions .button{flex:1}.talent-motion-toggle{min-width:44px;min-height:44px}}
+@media(max-width:520px){.talent-explorer{border-radius:16px}.talent-explorer-bar{padding:16px}.talent-scene-meta{gap:10px}.talent-scene-meta>span:last-child{width:100%;padding-left:18px}.talent-canvas{height:420px}.talent-stage-caption{top:18px;left:16px;right:16px}.talent-stage-footer,.talent-edge-key{padding-left:16px;padding-right:16px}.talent-stage-footer{gap:8px}.talent-stage-footer p>span{display:none}.talent-inspector{padding:16px}.talent-inspector .inline-search input{font-size:16px}.talent-skill-list{display:flex;max-height:300px}.talent-page-actions{width:100%}.talent-page-actions .button{flex:1}.talent-motion-toggle{min-width:44px;min-height:44px}}
 
 /* Skill Core: category list, responsive fixed panel and selection details. */
 .talent-explorer-bar{display:none}
@@ -77,7 +77,7 @@
 .talent-selected{box-sizing:border-box;flex:0 0 150px;height:150px;min-height:150px;display:flex;flex-direction:column;justify-content:flex-start;gap:8px;margin-top:0;padding:13px;border-radius:12px;overflow:hidden}
 .talent-selected-main{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:7px;min-width:0}
 .talent-selected h3{min-width:0;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;font-weight:600}
-.talent-selected .level-pill,.talent-selected .talent-category-count{flex:none}
+.talent-selected .badge,.talent-selected .talent-category-count{flex:none}
 .talent-selected .talent-category-count{color:var(--muted);font-size:11px}
 .talent-selected-category-skills,.talent-selected-description{display:-webkit-box;max-height:2.9em;margin:0;overflow:hidden;color:var(--muted);font-size:11px;line-height:1.45;-webkit-box-orient:vertical;-webkit-line-clamp:2}
 .talent-selected-link{display:flex;align-items:center;justify-content:center;gap:7px;min-height:38px;margin-top:auto;padding-top:8px;border-top:1px solid var(--line);color:var(--ink);font-size:12px;font-weight:600;text-decoration:none}
@@ -111,14 +111,14 @@
 .talent-category-list>button[aria-pressed="true"]{background:color-mix(in srgb,var(--category-color) 12%,var(--surface));box-shadow:inset 3px 0 0 var(--category-color);border:0}
 .talent-category-list>button>i{width:9px;height:9px;flex:none;border-radius:50%;background:var(--category-color)}
 .talent-category-list>button strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:600}
-.talent-category-list>button small{min-width:26px;margin:0;padding:3px 8px;border-radius:999px;background:var(--surface-3);color:var(--muted);font-size:12px;font-weight:600;line-height:1.2;text-align:center;font-variant-numeric:tabular-nums}
+
 
 .talent-selected{flex:none;height:auto;min-height:0;gap:10px;padding:16px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--surface-2)}
 .talent-selected h3{font-size:15px;white-space:normal}
 .talent-selected .talent-category-count{font-size:12px}
 .talent-selected-description{display:block;max-height:none;font-size:13px;line-height:1.5;-webkit-line-clamp:unset}
 .talent-selected-category-skills{display:flex;flex-wrap:wrap;gap:6px;max-height:none;margin:0;padding:0;list-style:none;-webkit-line-clamp:unset}
-.talent-selected-category-skills li{padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);font-size:12px;font-weight:600}
+
 .talent-selected-link{font-size:13px}
 
 /* The panel grows with its content (the grid row stretches the sphere to match), so every
@@ -129,3 +129,6 @@
 .talent-category-list{height:auto;overflow:visible}
 @media(max-width:1250px){.talent-inspector{min-height:0}}
 @media(max-width:520px){.talent-inspector{height:auto;min-height:0;padding:16px}.talent-category-list>button{min-height:48px}.talent-selected{height:auto;min-height:0}}
+
+/* category counts use the shared count badge; undo the generic list <small> styles */
+.talent-category-list>button small.badge-count{display:inline-grid;margin:0;font-size:0.74rem;line-height:1}

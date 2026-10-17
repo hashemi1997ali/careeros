@@ -13,6 +13,7 @@ import { apiFetch } from '@/lib/api-client'
 import { formatApplicationStatus } from '@/lib/application-status'
 import { buildSkillForgeRoadmapUrl } from '@/lib/skillforge'
 import type { ApplicationStatus, DashboardData, Skill } from '@/components/types'
+import { StatusBadge } from '@/components/badge'
 
 // Labels come from formatApplicationStatus so badges and the pipeline always read the same.
 const pipeline: Array<{ key: ApplicationStatus; tone: string }> = [
@@ -156,7 +157,7 @@ export function DashboardView() {
                       {dashboard.recentApplications.slice(0, 3).map(application => (
                         <tr key={application.id}>
                           <td data-label="Company"><span className="cell-stack"><strong title={application.company}>{application.company}</strong><span className="application-role" title={application.position}>{application.position}</span>{application.location && <small title={application.location}>{application.location}</small>}</span></td>
-                          <td data-label="Status"><span className={`status-pill ${application.status}`}>{formatApplicationStatus(application.status)}</span></td>
+                          <td data-label="Status"><StatusBadge status={application.status} /></td>
                         </tr>
                       ))}
                     </tbody>

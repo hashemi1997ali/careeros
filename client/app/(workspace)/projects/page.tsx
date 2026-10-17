@@ -12,6 +12,7 @@ import { ConfirmButton } from '@/components/confirm-button'
 import { localDateInputValue } from '@/lib/date'
 import { apiFetch } from '@/lib/api-client'
 import type { Project, Skill } from '@/components/types'
+import { Badge } from '@/components/badge'
 
 const formatProjectPeriod = (startDate: string | null, endDate: string | null) => {
   const format = (value: string) => {
@@ -215,7 +216,7 @@ export default function ProjectsPage() {
                 <h2>{project.title}</h2>
                 <small className="project-period">{formatProjectPeriod(project.startDate, project.endDate)}</small>
                 <p>{project.description}</p>
-                <ul>{project.skills.slice(0, 3).map(skill => <li key={skill.id} title={skill.name}>{skill.name}</li>)}{project.skills.length > 3 && <li className="project-more-skills">+{project.skills.length - 3} more{project.skills.length === 4 ? ' skill' : ' skills'}</li>}</ul>
+                <ul className="badge-list">{project.skills.slice(0, 3).map(skill => <li key={skill.id}><Badge title={skill.name}><span>{skill.name}</span></Badge></li>)}{project.skills.length > 3 && <li><Badge tone="more">+{project.skills.length - 3} more{project.skills.length === 4 ? ' skill' : ' skills'}</Badge></li>}</ul>
               </div>
               <div className="project-actions">
                 <div className="project-link-row">
@@ -243,7 +244,7 @@ export default function ProjectsPage() {
         <label>Project title<input required minLength={2} maxLength={150} value={title} onChange={event => setTitle(event.target.value)} placeholder="CareerOS" /></label>
         <label>Description<textarea required minLength={10} maxLength={4000} value={description} onChange={event => setDescription(event.target.value)} placeholder="What did you build?" /></label>
         <div className="form-grid"><label>Repository URL<input type="url" value={repo} onChange={event => setRepo(event.target.value)} placeholder="https://github.com/..." /></label><label>Live URL<input type="url" value={live} onChange={event => setLive(event.target.value)} placeholder="https://..." /></label><label>Start date <span className="field-hint">Optional</span><input type="date" max={today} value={startDate} onChange={event => { setStartDate(event.target.value); if (!event.target.value) setEndDate('') }} /></label><label>End date <span className="field-hint">Optional</span><input type="date" max={today} min={startDate || undefined} disabled={!startDate} value={endDate} onChange={event => setEndDate(event.target.value)} /></label></div>
-        <fieldset className="skill-picker"><legend>Skills demonstrated</legend>{skills.length ? <div>{skills.map(skill => <label key={skill.id} className={skillIds.includes(skill.id) ? 'is-selected' : ''}><input type="checkbox" checked={skillIds.includes(skill.id)} onChange={() => toggle(skill.id)} /><span>{skill.name}</span></label>)}</div> : <p>Add skills first, then connect them to your project.</p>}</fieldset>
+        <fieldset className="skill-picker"><legend>Skills demonstrated</legend>{skills.length ? <div>{skills.map(skill => <label key={skill.id} className={`chip${skillIds.includes(skill.id) ? ' is-selected' : ''}`}><input type="checkbox" checked={skillIds.includes(skill.id)} onChange={() => toggle(skill.id)} />{skillIds.includes(skill.id) && <Icon name="check" size={14} />}<span>{skill.name}</span></label>)}</div> : <p>Add skills first, then connect them to your project.</p>}</fieldset>
       </form>
     </Dialog>
     {viewing && <Dialog
@@ -263,7 +264,7 @@ export default function ProjectsPage() {
         <section><h3>Description</h3><p>{viewing.description}</p></section>
         <section>
           <h3>Skills demonstrated</h3>
-          {viewing.skills.length ? <ul className="application-requirements">{viewing.skills.map(skill => <li key={skill.id}><span>{skill.name}</span></li>)}</ul> : <p>No skills linked to this project.</p>}
+          {viewing.skills.length ? <ul className="badge-list">{viewing.skills.map(skill => <li key={skill.id}><Badge><span>{skill.name}</span></Badge></li>)}</ul> : <p>No skills linked to this project.</p>}
         </section>
         {(viewing.repositoryUrl || viewing.liveUrl) && <section className="project-detail-links">
           <h3>Project links</h3>

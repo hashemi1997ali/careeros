@@ -1,3 +1,4 @@
+import { drawSkillCoreMark, skillCoreColors } from '@/lib/skill-core-mark'
 import { levelRank, projectPoint, rotatePoint, type buildSkillSphere, type Point3 } from '@/lib/skill-graph-model'
 
 type Model = ReturnType<typeof buildSkillSphere>
@@ -16,9 +17,6 @@ export function createTalentScene(canvas: HTMLCanvasElement, model: Model, onSel
   let drag: { id: number; x: number; y: number; distance: number; lastTime: number } | null = null
   let projected: Projected[] = []
   let ink = '#e9f0fb', muted = '#a8b9d4', surface = '#0f2038', dark = true
-  const brainImage = new Image()
-  brainImage.decoding = 'async'
-  brainImage.src = '/images/icons/brain-2023630.png'
   const labels: Array<{ index: number; x: number; y: number; w: number; h: number }> = []
   const wireframes: Point3[][] = []
   for (let latitude = -2; latitude <= 2; latitude++) {
@@ -40,13 +38,6 @@ export function createTalentScene(canvas: HTMLCanvasElement, model: Model, onSel
   }
   const circle = (x: number, y: number, radius: number, color: string, alpha = 1) => {
     ctx.globalAlpha = alpha; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill()
-  }
-  const drawBrain = (x: number, y: number) => {
-    if (!brainImage.complete || !brainImage.naturalWidth) return
-    ctx.save()
-    ctx.globalAlpha = .76
-    ctx.drawImage(brainImage, x - 17, y - 17, 34, 34)
-    ctx.restore()
   }
   const draw = () => {
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0); ctx.clearRect(0, 0, width, height)
@@ -93,13 +84,10 @@ export function createTalentScene(canvas: HTMLCanvasElement, model: Model, onSel
     }
     sorted.forEach(drawNode)
     const glow = ctx.createRadialGradient(center.x, center.y, 6, center.x, center.y, 68)
-    glow.addColorStop(0, '#34d39944'); glow.addColorStop(1, '#34d39900')
+    glow.addColorStop(0, `${skillCoreColors.glow}44`); glow.addColorStop(1, `${skillCoreColors.glow}00`)
     ctx.globalAlpha = 1; ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(center.x, center.y, 68, 0, Math.PI * 2); ctx.fill()
     circle(center.x, center.y, 35, surface)
-    const core = ctx.createLinearGradient(center.x - 30, center.y - 30, center.x + 30, center.y + 30)
-    core.addColorStop(0, '#6ee7c8'); core.addColorStop(1, '#14b8a6')
-    ctx.fillStyle = core; ctx.beginPath(); ctx.arc(center.x, center.y, 30, 0, Math.PI * 2); ctx.fill()
-    drawBrain(center.x, center.y)
+    drawSkillCoreMark(ctx, center.x, center.y, 30)
     labels.length = 0
     const labelNodes = [...projected].sort((a, b) => {
       const priority = (p: Projected) => model.nodes[p.index].skill.id === active ? 10 : p.z
@@ -207,7 +195,6 @@ export function createTalentScene(canvas: HTMLCanvasElement, model: Model, onSel
   const themeObserver = new MutationObserver(readTheme); themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
   const intersectionObserver = new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; last = 0; if (inView) request(); else { cancelAnimationFrame(frame); frame = 0 } }); intersectionObserver.observe(canvas)
   canvas.addEventListener('pointerdown', down); canvas.addEventListener('pointermove', move); canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end); canvas.addEventListener('lostpointercapture', end); canvas.addEventListener('pointerleave', leave); canvas.addEventListener('wheel', wheel, { passive: false }); canvas.addEventListener('keydown', key); document.addEventListener('visibilitychange', visibility)
-  brainImage.addEventListener('load', request)
   readTheme(); resize()
   return {
     update(next: SceneOptions) { options = next; if (next.reducedMotion) { velocityX = 0; velocityY = 0 }; request() },
@@ -221,7 +208,6 @@ export function createTalentScene(canvas: HTMLCanvasElement, model: Model, onSel
     },
     dispose() {
       cancelAnimationFrame(frame); resizeObserver.disconnect(); themeObserver.disconnect(); intersectionObserver.disconnect()
-      brainImage.removeEventListener('load', request)
       canvas.removeEventListener('pointerdown', down); canvas.removeEventListener('pointermove', move); canvas.removeEventListener('pointerup', end); canvas.removeEventListener('pointercancel', end); canvas.removeEventListener('lostpointercapture', end); canvas.removeEventListener('pointerleave', leave); canvas.removeEventListener('wheel', wheel); canvas.removeEventListener('keydown', key); document.removeEventListener('visibilitychange', visibility)
     },
   }

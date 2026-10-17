@@ -7,6 +7,7 @@ import { useSkillsAppUrl } from '@/components/app-shell'
 import { buildSkillSphere, categoryKey } from '@/lib/skill-graph-model'
 import { createTalentScene } from '@/lib/talent-scene'
 import { buildSkillForgeRoadmapUrl } from '@/lib/skillforge'
+import { Badge, LevelBadge } from '@/components/badge'
 
 const subscribeMotion = (listener: () => void) => { const media = matchMedia('(prefers-reduced-motion: reduce)'); media.addEventListener('change', listener); return () => media.removeEventListener('change', listener) }
 const readMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -130,15 +131,15 @@ export function TalentGraph({ skills }: { skills: Skill[] }) {
         <div className="talent-inspector-summary" role="status">{visibleCategories.length} of {model.categories.length} categories</div>
         <div className={`talent-category-list-frame${listAtTop ? ' is-at-top' : ''}${listAtBottom ? ' is-at-bottom' : ''}`}>
           <div ref={listRef} onScroll={onListScroll} className="talent-skill-list talent-category-list" aria-label="Skill categories">
-            {visibleCategories.length ? visibleCategories.map(category => <button type="button" key={category.key} aria-pressed={selectedCategory?.key === category.key} onClick={() => selectCategory(category.key)} style={{ '--category-color': category.color } as CSSProperties}><i/><strong>{category.label}</strong><small aria-label={`${category.members.length} ${category.members.length === 1 ? 'skill' : 'skills'}`}>{category.members.length}</small></button>) : <div className="talent-no-results"><strong>No matching categories</strong><button type="button" className="text-link" onClick={() => setSearch('')}>Clear search</button></div>}
+            {visibleCategories.length ? visibleCategories.map(category => <button type="button" key={category.key} aria-pressed={selectedCategory?.key === category.key} onClick={() => selectCategory(category.key)} style={{ '--category-color': category.color } as CSSProperties}><i/><strong>{category.label}</strong><small className="badge-count" aria-label={`${category.members.length} ${category.members.length === 1 ? 'skill' : 'skills'}`}>{category.members.length}</small></button>) : <div className="talent-no-results"><strong>No matching categories</strong><button type="button" className="text-link" onClick={() => setSearch('')}>Clear search</button></div>}
           </div>
         </div>
         <div className={`talent-selected${selected ? ' has-selection' : ''}`} aria-live="polite">{selected ? <>
-          <div className="talent-selected-main"><h3>{selected.name}</h3><span className={`level-pill ${selected.level}`}>{selected.level}</span></div>
+          <div className="talent-selected-main"><h3>{selected.name}</h3><LevelBadge level={selected.level} /></div>
           {selectedSkillForgeUrl && <a className="talent-selected-link" href={selectedSkillForgeUrl} target="_blank" rel="noreferrer"><Icon name="skillforge" size={15}/>Open in SkillForge<Icon name="external" size={13}/></a>}
         </> : selectedCategory ? <>
-          <div className="talent-selected-main"><h3>{selectedCategory.label}</h3><span className="talent-category-count">{selectedCategory.members.length} skills</span></div>
-          <ul className="talent-selected-category-skills">{selectedCategory.members.map(skill => <li key={skill.id}>{skill.name}</li>)}</ul>
+          <div className="talent-selected-main"><h3>{selectedCategory.label}</h3><Badge tone="neutral">{selectedCategory.members.length} {selectedCategory.members.length === 1 ? 'skill' : 'skills'}</Badge></div>
+          <ul className="talent-selected-category-skills badge-list">{selectedCategory.members.map(skill => <li key={skill.id}><Badge><span>{skill.name}</span></Badge></li>)}</ul>
         </> : <>
           <div className="talent-selected-main"><h3>See how your skills connect</h3></div>
           <p className="talent-selected-description">Select a category or skill in the sphere to explore its connections.</p>

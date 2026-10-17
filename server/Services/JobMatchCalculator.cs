@@ -49,5 +49,7 @@ internal static class JobMatchCalculator
         };
     }
 
-    private static string Normalize(string value) => value.Trim().ToUpperInvariant();
+    // Same canonical form the skill catalog uses, so "JS" matches "JavaScript" and "C#" matches "csharp".
+    private static string Normalize(string value) =>
+        SkillNameNormalizer.ToSlug(SkillNameNormalizer.CanonicalizeName(value));
 }

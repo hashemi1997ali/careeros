@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -61,7 +62,9 @@ builder.Services.AddHttpClient<IJobPageFetcher, JobPageFetcher>(client =>
     client.DefaultRequestHeaders.UserAgent.ParseAdd("CareerOS job importer/1.0");
     client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("en-US,en;q=0.8");
     client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("text/html"));
-});
+})
+// JobPageFetcher follows redirects itself so every hop passes the private-host check.
+.ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
 builder.Services.AddHttpContextAccessor();
 
 var allowedOrigins = builder.Configuration
@@ -103,6 +106,26 @@ builder.Services
         };
     });
 
+// AI calls cost money per request: each signed-in user gets a small per-minute budget.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("ai", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirst("sub")?.Value ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1) }));
+    options.OnRejected = (context, cancellationToken) =>
+        context.HttpContext.RequestServices.GetRequiredService<IProblemDetailsService>().WriteAsync(new ProblemDetailsContext
+        {
+            HttpContext = context.HttpContext,
+            ProblemDetails =
+            {
+                Status = StatusCodes.Status429TooManyRequests,
+                Title = "Too many AI requests",
+                Detail = "You have reached the AI request limit. Please wait a minute and try again."
+            }
+        });
+});
+
 builder.Services.AddAuthorizationBuilder()
     .SetFallbackPolicy(new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
@@ -119,6 +142,7 @@ app.UseExceptionHandler();
 app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 

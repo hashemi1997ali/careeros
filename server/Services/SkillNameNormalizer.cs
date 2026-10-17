@@ -34,7 +34,7 @@ public static class SkillNameNormalizer
             return canonical;
         }
 
-        return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(trimmed.ToLowerInvariant());
+        return ToDisplayCase(trimmed);
     }
 
     public static string CanonicalizeCategory(string value)
@@ -47,9 +47,13 @@ public static class SkillNameNormalizer
             "backend" or "back-end" => "Backend",
             "devops" => "DevOps",
             "ui-ux" or "ux-ui" => "UI/UX",
-            _ => CultureInfo.InvariantCulture.TextInfo.ToTitleCase(trimmed.ToLowerInvariant())
+            _ => ToDisplayCase(trimmed)
         };
     }
+
+    // All-lowercase input is title-cased ("docker" -> "Docker"); deliberate casing such as "PHP" or "jQuery" is kept.
+    private static string ToDisplayCase(string value) =>
+        value.Any(char.IsUpper) ? value : CultureInfo.InvariantCulture.TextInfo.ToTitleCase(value);
 
     public static string ToSlug(string value)
     {

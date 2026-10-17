@@ -18,3 +18,5 @@ public class ProjectResponseDto
 
     public IReadOnlyList<SkillResponseDto> Skills { get; set; } = [];
 }
+
+public sealed record ProjectPreviewDto(bool Embeddable);

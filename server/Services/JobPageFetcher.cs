@@ -14,38 +14,16 @@ public sealed class JobPageFetcher(HttpClient httpClient, ILogger<JobPageFetcher
 
     public async Task<JobPageFetchResult> FetchAsync(string url, CancellationToken cancellationToken)
     {
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var currentUrl) ||
-            (!string.Equals(currentUrl.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
-             !string.Equals(currentUrl.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)))
-        {
-            return Failed(url, "The job URL must use http or https.");
-        }
-
         try
         {
-            for (var redirect = 0; redirect <= MaxRedirects; redirect++)
+            var (response, finalUrl, error) = await GetFollowingRedirectsAsync(url, cancellationToken);
+            if (response is null)
             {
-                if (!await IsPublicHttpHostAsync(currentUrl, cancellationToken))
-                {
-                    return Failed(url, "The job URL points to a private or local host.");
-                }
+                return Failed(url, error!);
+            }
 
-                using var response = await httpClient.GetAsync(
-                    currentUrl,
-                    HttpCompletionOption.ResponseHeadersRead,
-                    cancellationToken);
-
-                if ((int)response.StatusCode is >= 300 and < 400 && response.Headers.Location is not null)
-                {
-                    if (redirect == MaxRedirects)
-                    {
-                        return Failed(url, "The job page redirected too many times.");
-                    }
-
-                    currentUrl = new Uri(currentUrl, response.Headers.Location);
-                    continue;
-                }
-
+            using (response)
+            {
                 if (!response.IsSuccessStatusCode)
                 {
                     return Failed(url, $"The job page returned HTTP {(int)response.StatusCode}.");
@@ -63,7 +41,7 @@ public sealed class JobPageFetcher(HttpClient httpClient, ILogger<JobPageFetcher
                     return Failed(url, "The job page did not contain readable job information.");
                 }
 
-                return new JobPageFetchResult(currentUrl.ToString(), text, true);
+                return new JobPageFetchResult(finalUrl.ToString(), text, true);
             }
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -75,8 +53,87 @@ public sealed class JobPageFetcher(HttpClient httpClient, ILogger<JobPageFetcher
             logger.LogInformation(exception, "Could not fetch job page {Url}", url);
             return Failed(url, "The job page could not be fetched.");
         }
+    }
 
-        return Failed(url, "The job page could not be fetched.");
+    public async Task<bool> AllowsFramingAsync(string url, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var (response, _, _) = await GetFollowingRedirectsAsync(url, cancellationToken);
+            if (response is null)
+            {
+                return false;
+            }
+
+            using (response)
+            {
+                if (!response.IsSuccessStatusCode)
+                {
+                    return false;
+                }
+
+                // Any X-Frame-Options value (DENY, SAMEORIGIN, obsolete ALLOW-FROM) blocks a cross-origin preview.
+                if (response.Headers.Contains("X-Frame-Options"))
+                {
+                    return false;
+                }
+
+                // frame-ancestors only allows this app when it is a wildcard; 'none', 'self' or a host list block it.
+                var frameAncestors = response.Headers.TryGetValues("Content-Security-Policy", out var policies)
+                    ? policies
+                        .SelectMany(policy => policy.Split(';'))
+                        .Select(directive => directive.Trim())
+                        .FirstOrDefault(directive => directive.StartsWith("frame-ancestors", StringComparison.OrdinalIgnoreCase))
+                    : null;
+
+                return frameAncestors is null ||
+                       frameAncestors.Split(' ', StringSplitOptions.RemoveEmptyEntries).Skip(1).Contains("*");
+            }
+        }
+        catch (Exception exception) when (exception is HttpRequestException or IOException or SocketException or OperationCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            logger.LogInformation(exception, "Could not check framing for {Url}", url);
+            return false;
+        }
+    }
+
+    /// <summary>GET with manual redirects, so every hop must pass the public-host check. The caller disposes the response.</summary>
+    private async Task<(HttpResponseMessage? Response, Uri FinalUrl, string? Error)> GetFollowingRedirectsAsync(
+        string url,
+        CancellationToken cancellationToken)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var currentUrl) ||
+            (!string.Equals(currentUrl.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
+             !string.Equals(currentUrl.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)))
+        {
+            return (null, new Uri("about:blank"), "The URL must use http or https.");
+        }
+
+        for (var redirect = 0; redirect <= MaxRedirects; redirect++)
+        {
+            if (!await IsPublicHttpHostAsync(currentUrl, cancellationToken))
+            {
+                return (null, currentUrl, "The URL points to a private or local host.");
+            }
+
+            var response = await httpClient.GetAsync(currentUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            if ((int)response.StatusCode is >= 300 and < 400 && response.Headers.Location is not null)
+            {
+                var next = new Uri(currentUrl, response.Headers.Location);
+                response.Dispose();
+                if (redirect == MaxRedirects)
+                {
+                    return (null, currentUrl, "The page redirected too many times.");
+                }
+
+                currentUrl = next;
+                continue;
+            }
+
+            return (response, currentUrl, null);
+        }
+
+        return (null, currentUrl, "The page could not be fetched.");
     }
 
     private static async Task<string> ReadLimitedAsync(HttpResponseMessage response, CancellationToken cancellationToken)
@@ -138,6 +195,11 @@ public sealed class JobPageFetcher(HttpClient httpClient, ILogger<JobPageFetcher
 
     private static bool IsPublicAddress(IPAddress address)
     {
+        if (address.IsIPv4MappedToIPv6)
+        {
+            address = address.MapToIPv4();
+        }
+
         if (IPAddress.IsLoopback(address) || address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any))
         {
             return false;
@@ -146,14 +208,14 @@ public sealed class JobPageFetcher(HttpClient httpClient, ILogger<JobPageFetcher
         if (address.AddressFamily == AddressFamily.InterNetwork)
         {
             var bytes = address.GetAddressBytes();
-            return bytes[0] is not 10 and not 127 &&
+            return bytes[0] is not 0 and not 10 and not 127 &&
                    !(bytes[0] == 169 && bytes[1] == 254) &&
                    !(bytes[0] == 172 && bytes[1] is >= 16 and <= 31) &&
                    !(bytes[0] == 192 && bytes[1] == 168) &&
                    !(bytes[0] == 100 && bytes[1] is >= 64 and <= 127);
         }
 
-        return !address.IsIPv6LinkLocal && !address.IsIPv6SiteLocal && !address.IsIPv6Multicast;
+        return !address.IsIPv6LinkLocal && !address.IsIPv6SiteLocal && !address.IsIPv6UniqueLocal && !address.IsIPv6Multicast;
     }
 
     private static JobPageFetchResult Failed(string url, string message) => new(url, string.Empty, false, message);

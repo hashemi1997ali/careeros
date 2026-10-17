@@ -8,7 +8,7 @@ namespace server.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/projects")]
-public class ProjectsController(IProjectService projectService) : ControllerBase
+public class ProjectsController(IProjectService projectService, IJobPageFetcher pageFetcher) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType<IReadOnlyList<ProjectResponseDto>>(StatusCodes.Status200OK)]
@@ -29,6 +29,25 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     {
         var project = await projectService.GetByIdAsync(id, cancellationToken);
         return project is null ? NotFound() : Ok(project);
+    }
+
+    /// <summary>Whether the project's live site can be shown as an embedded preview.</summary>
+    [HttpGet("{id:int:min(1)}/preview")]
+    [ProducesResponseType<ProjectPreviewDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProjectPreviewDto>> GetPreview(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var project = await projectService.GetByIdAsync(id, cancellationToken);
+        if (project is null)
+        {
+            return NotFound();
+        }
+
+        var embeddable = project.LiveUrl is not null &&
+                         await pageFetcher.AllowsFramingAsync(project.LiveUrl, cancellationToken);
+        return Ok(new ProjectPreviewDto(embeddable));
     }
 
     [HttpPost]

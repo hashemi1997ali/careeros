@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Text.RegularExpressions;
 using server.DTOs;
 using server.Exceptions;
@@ -10,6 +11,7 @@ namespace server.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/ai")]
+[EnableRateLimiting("ai")]
 public sealed class AiController(
     IAiService aiService,
     ISkillService skillService,
@@ -21,6 +23,7 @@ public sealed class AiController(
     [HttpPost("application-extract")]
     [ProducesResponseType<AiApplicationExtractionResponseDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
     public async Task<ActionResult<AiApplicationExtractionResponseDto>> ExtractApplication(
         ApplicationExtractionRequestDto request,
@@ -67,6 +70,7 @@ public sealed class AiController(
     [ProducesResponseType<AiJobAnalysisResponseDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
     public async Task<ActionResult<AiJobAnalysisResponseDto>> AnalyzeJob(
         AiJobAnalysisRequestDto request,

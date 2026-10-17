@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using server.Data;
 using server.DTOs;
@@ -54,24 +55,81 @@ public class SkillService : ISkillService
         return await query
             .OrderBy(userSkill => userSkill.Skill.Name)
             .ThenBy(userSkill => userSkill.Skill.Category)
-            .Select(userSkill => new SkillResponseDto
-            {
-                Id = userSkill.Id,
-                Name = userSkill.Skill.Name,
-                Category = userSkill.Skill.Category,
-                Level = userSkill.Level,
-                StartDate = userSkill.StartDate,
-                Projects = userSkill.ProjectSkills
-                    .OrderBy(projectSkill => projectSkill.Project!.Title)
-                    .Select(projectSkill => new SkillProjectDto
-                    {
-                        Id = projectSkill.ProjectId,
-                        Title = projectSkill.Project!.Title
-                    })
-                    .ToList()
-            })
+            .Select(ToResponse)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<PagedResponseDto<SkillResponseDto>> GetPageAsync(
+        string? search,
+        string? category,
+        string? sort,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var userId = await _currentUser.GetRequiredUserIdAsync(cancellationToken);
+        var owned = _context.UserSkills.AsNoTracking().Where(userSkill => userSkill.UserId == userId);
+
+        var facets = await owned
+            .GroupBy(userSkill => userSkill.Skill.Category)
+            .Select(group => new { group.Key, Count = group.Count() })
+            .ToDictionaryAsync(item => item.Key, item => item.Count, cancellationToken);
+        facets["All"] = facets.Values.Sum();
+
+        var query = owned;
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var pattern = $"%{search.Trim()}%";
+            query = query.Where(userSkill =>
+                EF.Functions.ILike(userSkill.Skill.Name, pattern) ||
+                EF.Functions.ILike(userSkill.Skill.Category, pattern));
+        }
+
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            var categorySlug = SkillNameNormalizer.ToSlug(SkillNameNormalizer.CanonicalizeCategory(category));
+            query = query.Where(userSkill => userSkill.Skill.CategorySlug == categorySlug);
+        }
+
+        var total = await query.CountAsync(cancellationToken);
+        // Every order ends with Id so pages never overlap or skip rows.
+        IQueryable<UserSkill> sorted = sort switch
+        {
+            "level" => query
+                .OrderByDescending(userSkill => userSkill.Level == SkillLevel.Advanced ? 2 : userSkill.Level == SkillLevel.Intermediate ? 1 : 0)
+                .ThenBy(userSkill => userSkill.Skill.Name).ThenBy(userSkill => userSkill.Id),
+            "evidence" => query
+                .OrderByDescending(userSkill => userSkill.ProjectSkills.Count)
+                .ThenBy(userSkill => userSkill.Skill.Name).ThenBy(userSkill => userSkill.Id),
+            _ => query.OrderBy(userSkill => userSkill.Skill.Name).ThenBy(userSkill => userSkill.Skill.Category).ThenBy(userSkill => userSkill.Id)
+        };
+
+        return new PagedResponseDto<SkillResponseDto>
+        {
+            Items = await sorted.Skip((page - 1) * pageSize).Take(pageSize).Select(ToResponse).ToListAsync(cancellationToken),
+            Total = total,
+            Page = page,
+            PageSize = pageSize,
+            Facets = facets
+        };
+    }
+
+    private static readonly Expression<Func<UserSkill, SkillResponseDto>> ToResponse = userSkill => new SkillResponseDto
+    {
+        Id = userSkill.Id,
+        Name = userSkill.Skill.Name,
+        Category = userSkill.Skill.Category,
+        Level = userSkill.Level,
+        StartDate = userSkill.StartDate,
+        Projects = userSkill.ProjectSkills
+            .OrderBy(projectSkill => projectSkill.Project!.Title)
+            .Select(projectSkill => new SkillProjectDto
+            {
+                Id = projectSkill.ProjectId,
+                Title = projectSkill.Project!.Title
+            })
+            .ToList()
+    };
 
     public async Task<IReadOnlyList<SkillSuggestionDto>> GetSuggestionsAsync(
         string search,
@@ -104,22 +162,7 @@ public class SkillService : ISkillService
         return await _context.UserSkills
             .AsNoTracking()
             .Where(userSkill => userSkill.Id == id && userSkill.UserId == userId)
-            .Select(userSkill => new SkillResponseDto
-            {
-                Id = userSkill.Id,
-                Name = userSkill.Skill.Name,
-                Category = userSkill.Skill.Category,
-                Level = userSkill.Level,
-                StartDate = userSkill.StartDate,
-                Projects = userSkill.ProjectSkills
-                    .OrderBy(projectSkill => projectSkill.Project!.Title)
-                    .Select(projectSkill => new SkillProjectDto
-                    {
-                        Id = projectSkill.ProjectId,
-                        Title = projectSkill.Project!.Title
-                    })
-                    .ToList()
-            })
+            .Select(ToResponse)
             .FirstOrDefaultAsync(cancellationToken);
     }
 

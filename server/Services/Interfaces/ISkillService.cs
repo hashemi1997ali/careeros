@@ -11,6 +11,13 @@ public interface ISkillService
         SkillLevel? level,
         CancellationToken cancellationToken);
 
+    Task<PagedResponseDto<SkillResponseDto>> GetPageAsync(
+        string? search,
+        string? category,
+        string? sort,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken);
     Task<IReadOnlyList<SkillSuggestionDto>> GetSuggestionsAsync(
         string search,
         CancellationToken cancellationToken);

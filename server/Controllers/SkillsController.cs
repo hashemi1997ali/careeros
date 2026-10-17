@@ -32,14 +32,25 @@ public class SkillsController : ControllerBase
         return Ok(await _skillService.GetSuggestionsAsync(search, cancellationToken));
     }
 
+    /// <summary>
+    /// Lists the user's skills. With <c>page</c> the result is a page plus counts per category;
+    /// <c>sort</c> is one of name, level or evidence.
+    /// </summary>
     [HttpGet]
     [ProducesResponseType<IReadOnlyList<SkillResponseDto>>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<SkillResponseDto>>> GetSkills(
+    [ProducesResponseType<PagedResponseDto<SkillResponseDto>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSkills(
         [FromQuery] string? search,
         [FromQuery] string? category,
         [FromQuery] SkillLevel? level,
+        [FromQuery] PageQueryDto paging,
         CancellationToken cancellationToken)
     {
+        if (paging.Page is { } page)
+        {
+            return Ok(await _skillService.GetPageAsync(search, category, paging.Sort, page, paging.PageSize, cancellationToken));
+        }
+
         var skills = await _skillService.GetAllAsync(
             search,
             category,

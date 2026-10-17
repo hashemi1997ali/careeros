@@ -10,6 +10,13 @@ public interface IJobApplicationService
         string? search,
         CancellationToken cancellationToken);
 
+    Task<PagedResponseDto<JobApplicationResponseDto>> GetPageAsync(
+        IReadOnlyCollection<JobApplicationStatus> statuses,
+        string? search,
+        string? sort,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken);
     Task<JobApplicationResponseDto?> GetByIdAsync(
         int id,
         CancellationToken cancellationToken);

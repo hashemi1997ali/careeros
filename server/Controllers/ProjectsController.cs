@@ -10,13 +10,25 @@ namespace server.Controllers;
 [Route("api/projects")]
 public class ProjectsController(IProjectService projectService, IJobPageFetcher pageFetcher) : ControllerBase
 {
+    /// <summary>
+    /// Lists the user's projects. With <c>page</c> the result is a page plus link counts;
+    /// <c>links</c> is live, repository or unlinked and <c>sort</c> is one of name, started or skills.
+    /// </summary>
     [HttpGet]
     [ProducesResponseType<IReadOnlyList<ProjectResponseDto>>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<ProjectResponseDto>>> GetProjects(
+    [ProducesResponseType<PagedResponseDto<ProjectResponseDto>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetProjects(
         [FromQuery] string? search,
         [FromQuery] int? skillId,
+        [FromQuery] string? links,
+        [FromQuery] PageQueryDto paging,
         CancellationToken cancellationToken)
     {
+        if (paging.Page is { } page)
+        {
+            return Ok(await projectService.GetPageAsync(search, links, paging.Sort, page, paging.PageSize, cancellationToken));
+        }
+
         return Ok(await projectService.GetAllAsync(search, skillId, cancellationToken));
     }
 

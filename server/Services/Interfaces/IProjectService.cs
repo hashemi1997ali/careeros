@@ -9,6 +9,13 @@ public interface IProjectService
         int? skillId,
         CancellationToken cancellationToken);
 
+    Task<PagedResponseDto<ProjectResponseDto>> GetPageAsync(
+        string? search,
+        string? links,
+        string? sort,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken);
     Task<ProjectResponseDto?> GetByIdAsync(int id, CancellationToken cancellationToken);
 
     Task<ProjectResponseDto> CreateAsync(

@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using server.Data;
 using server.DTOs;
@@ -43,6 +44,88 @@ public class JobApplicationService(
 
         return applications.Select(Map).ToList();
     }
+
+    public async Task<PagedResponseDto<JobApplicationResponseDto>> GetPageAsync(
+        IReadOnlyCollection<JobApplicationStatus> statuses,
+        string? search,
+        string? sort,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var userId = await currentUser.GetRequiredUserIdAsync(cancellationToken);
+        var owned = context.JobApplications.AsNoTracking().Where(application => application.UserId == userId);
+
+        var statusCounts = await owned
+            .GroupBy(application => application.Status)
+            .Select(group => new { group.Key, Count = group.Count() })
+            .ToDictionaryAsync(item => item.Key, item => item.Count, cancellationToken);
+        var facets = Enum.GetValues<JobApplicationStatus>()
+            .ToDictionary(status => status.ToString(), status => statusCounts.GetValueOrDefault(status));
+        facets["All"] = statusCounts.Values.Sum();
+
+        var query = owned;
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var pattern = $"%{search.Trim()}%";
+            query = query.Where(application =>
+                EF.Functions.ILike(application.Company, pattern) ||
+                EF.Functions.ILike(application.Position, pattern) ||
+                (application.Location != null && EF.Functions.ILike(application.Location, pattern)));
+        }
+
+        if (statuses.Count > 0)
+        {
+            query = query.Where(StatusIn(statuses));
+        }
+
+        var total = await query.CountAsync(cancellationToken);
+        var applications = await Sorted(query, sort)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Include(application => application.Requirements)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResponseDto<JobApplicationResponseDto>
+        {
+            Items = applications.Select(Map).ToList(),
+            Total = total,
+            Page = page,
+            PageSize = pageSize,
+            Facets = facets
+        };
+    }
+
+    /// <summary>status == a || status == b … built as an expression so EF translates it with the enum-to-string conversion.</summary>
+    private static Expression<Func<JobApplication, bool>> StatusIn(IEnumerable<JobApplicationStatus> statuses)
+    {
+        var application = Expression.Parameter(typeof(JobApplication), "application");
+        var status = Expression.Property(application, nameof(JobApplication.Status));
+        var body = statuses
+            .Distinct()
+            .Select(value => (Expression)Expression.Equal(status, Expression.Constant(value)))
+            .Aggregate(Expression.OrElse);
+        return Expression.Lambda<Func<JobApplication, bool>>(body, application);
+    }
+
+    // Every order ends with Id so pages never overlap or skip rows.
+    private static IQueryable<JobApplication> Sorted(IQueryable<JobApplication> query, string? sort) => sort switch
+    {
+        "company" => query.OrderBy(item => item.Company).ThenBy(item => item.Position).ThenBy(item => item.Id),
+        "role" => query.OrderBy(item => item.Position).ThenBy(item => item.Id),
+        "status" => query
+            .OrderBy(item => item.Status == JobApplicationStatus.Saved ? 0
+                : item.Status == JobApplicationStatus.Applied ? 1
+                : item.Status == JobApplicationStatus.HrInterview ? 2
+                : item.Status == JobApplicationStatus.TechnicalInterview ? 3
+                : item.Status == JobApplicationStatus.Offer ? 4
+                : item.Status == JobApplicationStatus.Rejected ? 5 : 6)
+            .ThenByDescending(item => item.UpdatedAt).ThenBy(item => item.Id),
+        "applied" => query.OrderBy(item => item.AppliedAt == null).ThenByDescending(item => item.AppliedAt).ThenBy(item => item.Id),
+        "interview" => query.OrderBy(item => item.InterviewAt == null).ThenBy(item => item.InterviewAt).ThenBy(item => item.Id),
+        "salary" => query.OrderBy(item => item.Salary == null).ThenByDescending(item => item.Salary).ThenBy(item => item.Id),
+        _ => query.OrderByDescending(item => item.UpdatedAt).ThenBy(item => item.Id)
+    };
 
     public async Task<JobApplicationResponseDto?> GetByIdAsync(
         int id,

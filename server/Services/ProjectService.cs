@@ -46,6 +46,76 @@ public class ProjectService(
         return projects.Select(Map).ToList();
     }
 
+    public async Task<PagedResponseDto<ProjectResponseDto>> GetPageAsync(
+        string? search,
+        string? links,
+        string? sort,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var userId = await currentUser.GetRequiredUserIdAsync(cancellationToken);
+        var owned = context.Projects.AsNoTracking().Where(project => project.UserId == userId);
+
+        var counts = await owned
+            .GroupBy(_ => 1)
+            .Select(group => new
+            {
+                All = group.Count(),
+                Live = group.Count(project => project.LiveUrl != null),
+                Repository = group.Count(project => project.RepositoryUrl != null),
+                Unlinked = group.Count(project => project.LiveUrl == null && project.RepositoryUrl == null)
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+        var facets = new Dictionary<string, int>
+        {
+            ["All"] = counts?.All ?? 0,
+            ["live"] = counts?.Live ?? 0,
+            ["repository"] = counts?.Repository ?? 0,
+            ["unlinked"] = counts?.Unlinked ?? 0
+        };
+
+        var query = links switch
+        {
+            "live" => owned.Where(project => project.LiveUrl != null),
+            "repository" => owned.Where(project => project.RepositoryUrl != null),
+            "unlinked" => owned.Where(project => project.LiveUrl == null && project.RepositoryUrl == null),
+            _ => owned
+        };
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var pattern = $"%{search.Trim()}%";
+            query = query.Where(project =>
+                EF.Functions.ILike(project.Title, pattern) ||
+                EF.Functions.ILike(project.Description, pattern));
+        }
+
+        var total = await query.CountAsync(cancellationToken);
+        // Every order ends with Id so pages never overlap or skip rows.
+        IQueryable<Project> sorted = sort switch
+        {
+            "started" => query.OrderBy(project => project.StartDate == null).ThenByDescending(project => project.StartDate).ThenBy(project => project.Title).ThenBy(project => project.Id),
+            "skills" => query.OrderByDescending(project => project.ProjectSkills.Count).ThenBy(project => project.Title).ThenBy(project => project.Id),
+            _ => query.OrderBy(project => project.Title).ThenBy(project => project.Id)
+        };
+        var projects = await sorted
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Include(project => project.ProjectSkills)
+            .ThenInclude(projectSkill => projectSkill.UserSkill)
+            .ThenInclude(userSkill => userSkill.Skill)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResponseDto<ProjectResponseDto>
+        {
+            Items = projects.Select(Map).ToList(),
+            Total = total,
+            Page = page,
+            PageSize = pageSize,
+            Facets = facets
+        };
+    }
+
     public async Task<ProjectResponseDto?> GetByIdAsync(
         int id,
         CancellationToken cancellationToken)

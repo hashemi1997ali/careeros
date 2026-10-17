@@ -214,6 +214,16 @@ All resource and AI endpoints require a valid access token. The health endpoints
 Authorization: Bearer ACCESS_TOKEN
 ```
 
+### Paging
+
+`GET /api/skills`, `/api/projects`, and `/api/job-applications` return the full list by default. Add `page` (with optional `pageSize`, 1–100, default 20, and `sort`) to get one page instead:
+
+```json
+{ "items": [], "total": 42, "page": 1, "pageSize": 10, "facets": { "All": 42, "Applied": 12 } }
+```
+
+`total` counts the items matching the search and filters across all pages; `facets` counts every filter option over all of the user's items and feeds the filter chips. Sort keys: skills `name`, `level`, `evidence`; projects `name`, `started`, `skills` (filter with `links=live|repository|unlinked`); applications `updated`, `company`, `role`, `status`, `applied`, `interview`, `salary` (`status` may repeat, e.g. both interview stages). The workspace shows 12 skills, 6 projects, and 10 applications per page.
+
 ### Account
 
 | Method | Route | Purpose |

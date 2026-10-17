@@ -12,14 +12,27 @@ namespace server.Controllers;
 public class JobApplicationsController(IJobApplicationService jobApplicationService)
     : ControllerBase
 {
+    /// <summary>
+    /// Lists the user's applications. With <c>page</c> the result is a page plus status counts;
+    /// <c>status</c> may repeat (e.g. both interview stages) and <c>sort</c> is one of
+    /// updated, company, role, status, applied, interview or salary.
+    /// </summary>
     [HttpGet]
     [ProducesResponseType<IReadOnlyList<JobApplicationResponseDto>>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<JobApplicationResponseDto>>> GetApplications(
-        [FromQuery] JobApplicationStatus? status,
+    [ProducesResponseType<PagedResponseDto<JobApplicationResponseDto>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetApplications(
+        [FromQuery] JobApplicationStatus[]? status,
         [FromQuery] string? search,
+        [FromQuery] PageQueryDto paging,
         CancellationToken cancellationToken)
     {
-        return Ok(await jobApplicationService.GetAllAsync(status, search, cancellationToken));
+        if (paging.Page is { } page)
+        {
+            return Ok(await jobApplicationService.GetPageAsync(status ?? [], search, paging.Sort, page, paging.PageSize, cancellationToken));
+        }
+
+        // The full list keeps its single-status filter for existing callers.
+        return Ok(await jobApplicationService.GetAllAsync(status is [var single] ? single : null, search, cancellationToken));
     }
 
     [HttpGet("{id:int:min(1)}")]

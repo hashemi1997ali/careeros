@@ -4,6 +4,11 @@ A full-stack career-management platform built with Next.js, ASP.NET Core, Postgr
 
 CareerOS brings skills, project evidence, job applications, and role requirements into one workspace. It helps you see which requirements your current skills cover, where the gaps are, and what to work on next. AI can extract application details from a posting and analyze a role against your skills and projects.
 
+## 🚀 Live Demo
+
+🔗 **Website:**  
+Click [here](https://careeros-pi-weld.vercel.app) to view the live demo.
+
 ## 📖 Project Overview
 
 The browser uses a Next.js Backend-for-Frontend (BFF). Next.js holds the encrypted Auth0 session and forwards authenticated requests to the ASP.NET Core API; the API owns the data in PostgreSQL.

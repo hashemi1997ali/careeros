@@ -33,8 +33,6 @@ export interface ApiFetchInit extends RequestInit {
 }
 
 async function responseMessage(response: Response) {
-  if (response.status === 429) return 'Analysis was not successful. Please try again.'
-
   const contentType = response.headers.get('content-type') ?? ''
   try {
     if (contentType.includes('json')) {

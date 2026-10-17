@@ -64,7 +64,7 @@ export function DashboardView() {
             <div className="summary-figure">
               <span className="summary-label">Tracked roles</span>
               <strong className="metric-value">{dashboard?.totalApplications ?? 0}</strong>
-              <span className="summary-detail">{interviews} in interviews · {byStatus.Offer ?? 0} offers</span>
+              <span className="summary-detail">{interviews} in {interviews === 1 ? 'interview' : 'interviews'} · {byStatus.Offer ?? 0} {(byStatus.Offer ?? 0) === 1 ? 'offer' : 'offers'}</span>
             </div>
             <div className="summary-figure">
               <span className="summary-label">Average match</span>

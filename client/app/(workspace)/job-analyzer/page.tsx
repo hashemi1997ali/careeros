@@ -55,7 +55,7 @@ export default function JobAnalyzerPage() {
         body: JSON.stringify({ applicationId: selectedId, jobText: selectedId ? '' : jobText.trim(), url: null }),
       })
       if (!result.analysis.isJobPosting || !result.analysis.detectedRequirements.length) {
-        notify('Analysis was not successful. Please try again.', 'error', 'Analysis unavailable')
+        notify('This does not look like a job posting. Paste the full posting with its requirements, or pick a saved application.', 'info', 'No job posting found')
         return
       }
 

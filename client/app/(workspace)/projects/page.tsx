@@ -204,9 +204,9 @@ export default function ProjectsPage() {
     {visible.length ? (
       <section className="project-list">
         {visible.map((project, index) => (
-          <article className="project-card" key={project.id} style={{ '--i': Math.min(index, 8) } as React.CSSProperties}>
+          <article className="project-card" key={project.id}>
             <div className={`project-art project-preview art-${index % 3}`}>
-              {project.liveUrl && <iframe className="project-live-preview" src={project.liveUrl} title={`${project.title} live preview`} loading="lazy" scrolling="no" tabIndex={-1} sandbox="allow-scripts allow-same-origin" referrerPolicy="no-referrer" aria-hidden="true" />}
+              {project.liveUrl && <LivePreview id={project.id} url={project.liveUrl} title={project.title} />}
               {!project.liveUrl && <div className="project-no-preview"><Icon name="folder" size={25} /><span>No live preview</span></div>}
               {project.liveUrl && <a className="project-live-link" href={project.liveUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open ${project.title} live site`} title="Open live site"><Icon name="external" size={17} /></a>}
             </div>
@@ -272,5 +272,23 @@ export default function ProjectsPage() {
         </section>}
       </div>
     </Dialog>}
+  </>
+}
+
+// The API first checks whether the site allows embedding (X-Frame-Options / CSP frame-ancestors);
+// blocked sites get a clear fallback instead of an empty frame. The iframe stays hidden until it has loaded.
+function LivePreview({ id, url, title }: { id: number; url: string; title: string }) {
+  const [loaded, setLoaded] = useState(false)
+  const check = useQuery({
+    queryKey: ['project-preview', id, url],
+    queryFn: ({ signal }) => apiFetch<{ embeddable: boolean }>(`/api/projects/${id}/preview`, { signal }),
+    staleTime: 10 * 60_000,
+  })
+  if (check.data?.embeddable === false || check.isError) {
+    return <div className="project-no-preview"><Icon name="external" size={22} /><span>Preview not available</span><small>This site can’t be shown here. Open it instead.</small></div>
+  }
+  return <>
+    {!loaded && <div className="project-preview-loading" role="status" aria-label={`Loading ${title} preview`}><span className="spinner" aria-hidden="true" /><span>Loading preview</span></div>}
+    {check.data?.embeddable && <iframe className="project-live-preview" data-loaded={loaded} src={url} title={`${title} live preview`} loading="lazy" scrolling="no" tabIndex={-1} sandbox="allow-scripts allow-same-origin" referrerPolicy="no-referrer" aria-hidden="true" onLoad={() => setLoaded(true)} />}
   </>
 }

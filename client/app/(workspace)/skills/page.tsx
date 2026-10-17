@@ -44,18 +44,31 @@ export default function SkillsPage() {
   const [startDate, setStartDate] = useState('')
   const today = localDateInputValue()
   const [error, setError] = useState<string | null>(null)
+  // The list opens only while the person types; picking, Escape or leaving the field closes it.
+  const [suggesting, setSuggesting] = useState(false)
+  const [suggestionTerm, setSuggestionTerm] = useState('')
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSuggestionTerm(name.trim()), 250)
+    return () => window.clearTimeout(timer)
+  }, [name])
 
   const q = useQuery({ queryKey: ['skills'], queryFn: ({ signal }) => apiFetch<Skill[]>('/api/skills', { signal }) })
   const suggestionsQuery = useQuery({
-    queryKey: ['skill-suggestions', name.trim()],
-    queryFn: ({ signal }) => apiFetch<SkillSuggestion[]>(`/api/skills/suggestions?search=${encodeURIComponent(name.trim())}`, { signal }),
-    enabled: open && name.trim().length >= 2,
+    queryKey: ['skill-suggestions', suggestionTerm],
+    queryFn: ({ signal }) => apiFetch<SkillSuggestion[]>(`/api/skills/suggestions?search=${encodeURIComponent(suggestionTerm)}`, { signal }),
+    enabled: open && suggesting && suggestionTerm.length >= 2,
     staleTime: 15_000,
   })
+  const suggestions = suggesting && name.trim().length >= 2 ? suggestionsQuery.data ?? [] : []
   const skills = useMemo(() => q.data ?? [], [q.data])
 
   function openCreate() {
-    setViewing(null); setEditing(null); setName(''); setCat(''); setLevel('Beginner'); setStartDate(''); setError(null); setOpen(true)
+    setViewing(null); setEditing(null); setName(''); setCat(''); setLevel('Beginner'); setStartDate(''); setError(null); setSuggesting(false); setOpen(true)
+  }
+
+  function pickSuggestion(suggestion: SkillSuggestion) {
+    setName(suggestion.name); setCat(suggestion.category); setSuggesting(false)
   }
 
   useEffect(() => {
@@ -71,7 +84,7 @@ export default function SkillsPage() {
   }, [open, viewingOpen])
 
   function openEdit(skill: Skill) {
-    setViewing(null); setEditing(skill); setName(skill.name); setCat(skill.category); setLevel(skill.level); setStartDate(skill.startDate ?? ''); setError(null); setOpen(true)
+    setViewing(null); setEditing(skill); setName(skill.name); setCat(skill.category); setLevel(skill.level); setStartDate(skill.startDate ?? ''); setError(null); setSuggesting(false); setOpen(true)
   }
 
   function openDetails(skill: Skill) {
@@ -124,12 +137,11 @@ export default function SkillsPage() {
   return <>
     <section className="page-heading"><div><p className="eyebrow">YOUR CAPABILITIES</p><h1>Skills</h1><p>Track your skills and evidence.</p></div><div className="talent-page-actions"><Link className="button button-ghost" href="/skills/graph"><Icon name="brain" size={17}/>Skill Core</Link><button className="button button-primary" type="button" onClick={openCreate}><Icon name="plus" />Add skill</button></div></section>
     <ResourceToolbar search={search} onSearch={setSearch} searchLabel="Search skills" filters={categories.map(value => ({value,label:value,count:value === 'All' ? skills.length : skills.filter(skill => skill.category === value).length}))} filter={category} onFilter={setCategory} sort={sort} onSort={setSort} sortOptions={[{value:'name',label:'Name A–Z'},{value:'level',label:'Highest proficiency'},{value:'evidence',label:'Most project evidence'}]} count={visible.length} total={skills.length} loading={q.isPending} onReset={search || category !== 'All' ? () => { setSearch(''); setCategory('All') } : undefined}/>
-    {visible.length ? <section className="card-grid">{visible.map((skill, index) => <article className="skill-card" key={skill.id} onClick={event => { if (!(event.target as HTMLElement).closest('button, [role="dialog"]')) openDetails(skill) }} style={{ '--i': Math.min(index, 10) } as React.CSSProperties}>
+    {visible.length ? <section className="card-grid">{visible.map(skill => <article className="skill-card" key={skill.id} onClick={event => { if (!(event.target as HTMLElement).closest('button, [role="dialog"]')) openDetails(skill) }}>
       <div className="skill-card-heading">
         <div className="skill-card-title"><h2>{skill.name}</h2></div>
-        <span className={`level-pill ${skill.level}`}>{skill.level}</span>
       </div>
-      <div className="skill-card-category"><span className="sr-only">Category</span><span className="skill-card-value">{skill.category}</span></div>
+      <div className="skill-card-category"><span className="sr-only">Category</span><span className="skill-card-value">{skill.category}</span><span className={`level-pill ${skill.level}`}>{skill.level}</span></div>
       <div className="skill-card-details">
         <div className="skill-card-field"><span className="skill-card-label">Experience</span><span className="skill-card-value">{formatExperience(skill.startDate)}</span></div>
         <div className="skill-card-field skill-card-project-count"><span className="skill-card-label">Projects</span><span className="skill-card-value">{skill.projects.length}</span></div>
@@ -150,7 +162,11 @@ export default function SkillsPage() {
     >
       <form id="skill-dialog-form" className="dialog-form" onSubmit={submit}>
         {error && <div className="form-error" role="alert">{error}</div>}
-        <div className="skill-name-field"><label htmlFor="skill-name">Skill name</label><input id="skill-name" required minLength={2} maxLength={100} autoComplete="off" value={name} onChange={event => setName(event.target.value)} placeholder="Docker" role="combobox" aria-autocomplete="list" aria-controls="skill-suggestions" aria-expanded={Boolean(suggestionsQuery.data?.length)} />{Boolean(suggestionsQuery.data?.length) && <div className="skill-suggestions" id="skill-suggestions">{suggestionsQuery.data!.map(suggestion => <button type="button" key={suggestion.id} onClick={() => { setName(suggestion.name); setCat(suggestion.category) }}><strong>{suggestion.name}</strong><span>{suggestion.category}</span></button>)}</div>}</div>
+        <div className="skill-name-field" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setSuggesting(false) }}>
+          <label htmlFor="skill-name">Skill name</label>
+          <input id="skill-name" required minLength={2} maxLength={100} autoComplete="off" value={name} onChange={event => { setName(event.target.value); setSuggesting(true) }} onKeyDown={event => { if (event.key === 'Escape' && suggestions.length) { event.stopPropagation(); setSuggesting(false) } else if (event.key === 'ArrowDown' && suggestions.length) { event.preventDefault(); document.querySelector<HTMLButtonElement>('#skill-suggestions button')?.focus() } }} placeholder="Docker" role="combobox" aria-autocomplete="list" aria-controls="skill-suggestions" aria-expanded={suggestions.length > 0} />
+          {suggestions.length > 0 && <div className="skill-suggestions" id="skill-suggestions" role="listbox" onKeyDown={event => { const items = Array.from(event.currentTarget.querySelectorAll('button')); const index = items.indexOf(document.activeElement as HTMLButtonElement); if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); const next = index + (event.key === 'ArrowDown' ? 1 : -1); if (next < 0) document.getElementById('skill-name')?.focus(); else items[Math.min(next, items.length - 1)]?.focus() } else if (event.key === 'Escape') { event.stopPropagation(); setSuggesting(false); document.getElementById('skill-name')?.focus() } }}>{suggestions.map(suggestion => <button type="button" role="option" aria-selected={false} key={suggestion.id} onClick={() => pickSuggestion(suggestion)}><strong>{suggestion.name}</strong><span>{suggestion.category}</span></button>)}</div>}
+        </div>
         <label>Category<input required minLength={2} maxLength={50} value={cat} onChange={event => setCat(event.target.value)} placeholder="DevOps" /></label>
         <fieldset className="choice-group"><legend>Proficiency</legend><div className="segmented segmented-form" style={{ '--segment-index': levels.indexOf(level), '--segment-count': levels.length } as React.CSSProperties}><span className="segmented-indicator" aria-hidden="true" />{levels.map(item => <label key={item} className={level === item ? 'is-active' : ''}><input type="radio" name="skill-level" value={item} checked={level === item} onChange={() => setLevel(item)} /><span>{item}</span></label>)}</div></fieldset>
         <label>Start date<input type="date" max={today} value={startDate} onChange={event => setStartDate(event.target.value)} /></label>

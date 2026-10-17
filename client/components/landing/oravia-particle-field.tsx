@@ -128,7 +128,7 @@ export function OraviaParticleField() {
       uniforms.uColor.value.set(document.documentElement.dataset.theme === "dark" ? "#ffffff" : "#202124");
     };
     syncTheme();
-    const themeObserver = new MutationObserver(syncTheme);
+    const themeObserver = new MutationObserver(() => { syncTheme(); request(); });
     themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
     let mouseX = 0;
@@ -150,17 +150,22 @@ export function OraviaParticleField() {
       group.position.set(compact ? 4 : 0, baseY + window.scrollY * 0.005, compact ? -8 : 0);
       group.scale.setScalar(0.65);
     };
-    const observer = new ResizeObserver(resize);
+    const observer = new ResizeObserver(() => { resize(); request(); });
     observer.observe(host);
     resize();
 
     let frame = 0;
     let time = 0;
+    let inView = true;
     group.rotation.x = 0.48;
     group.rotation.y = 0.55;
+    // Animate only while the field is on screen and motion is allowed; otherwise draw a single still frame.
+    const request = () => { if (!frame) frame = requestAnimationFrame(draw); };
     const draw = () => {
-      frame = requestAnimationFrame(draw);
-      if (!reduced.matches && !document.hidden) {
+      frame = 0;
+      const animate = inView && !reduced.matches && !document.hidden;
+      if (animate) {
+        frame = requestAnimationFrame(draw);
         time += 0.008;
         group.rotation.y = time * 0.2;
         group.rotation.z = window.scrollY * 0.0005;
@@ -174,11 +179,19 @@ export function OraviaParticleField() {
       camera.lookAt(0, 0, 0);
       renderer.render(scene, camera);
     };
+    const visibility = new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; request(); });
+    visibility.observe(host);
+    const onVisibilityChange = () => request();
     window.addEventListener("pointermove", onPointerMove, { passive: true });
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    reduced.addEventListener("change", request);
     draw();
 
     return () => {
       cancelAnimationFrame(frame);
+      visibility.disconnect();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      reduced.removeEventListener("change", request);
       window.removeEventListener("pointermove", onPointerMove);
       observer.disconnect();
       themeObserver.disconnect();

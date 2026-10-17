@@ -16,7 +16,13 @@ export async function upstreamFetch(input: string | URL, init: RequestInit = {},
   const signal = init.signal ? AbortSignal.any([init.signal, timeout]) : timeout
 
   try {
-    return await fetch(input, { ...init, signal })
+    const response = await fetch(input, { ...init, signal })
+    const authorization = new Headers(init.headers).get('authorization')
+    // A valid token whose local user is missing (database reset, account removed): provision it again
+    // from Auth0 and retry once, instead of leaving the session stuck on "Session expired".
+    if (response.status !== 401 || !authorization || url.includes('/api/users/sync')) return response
+    const sync = await fetch(new URL('/api/users/sync', url), { method: 'POST', headers: { Authorization: authorization }, cache: 'no-store', signal })
+    return sync.ok ? await fetch(input, { ...init, signal }) : response
   } catch (error) {
     console.error('[upstream] request failed', url, error)
     return Response.json(
